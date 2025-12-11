@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Define your custom colors using CSS variables */
+:root {
+  --color-primary: #F26A1B;
+  --color-secondary: #3DAEF2;
+  --color-accent: #48B87C;
+  --color-warning: #E95454;
+  --color-dark: #1A1A2E;
+  --color-light: #F9F9F9;
+  --color-background: #FFFFFF;
+  --color-aqua: #4BC4C0;
+  --color-beige: #F4EDE5;
+}
+
+/* Add these colors to Tailwind theme using @theme */
+@theme {
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-warning: var(--color-warning);
+  --color-dark: var(--color-dark);
+  --color-light: var(--color-light);
+  --color-background: var(--color-background);
+  --color-aqua: var(--color-aqua);
+  --color-beige: var(--color-beige);
+}
