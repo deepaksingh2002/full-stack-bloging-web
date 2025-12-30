@@ -1,48 +1,61 @@
-const BASE_URL = "https://college-blog-qlqp.onrender.com/api/v1/users";
+import axios from "axios";
 
-export const authApi = {
-    
-  // Register user
-  register: async (userData) => {
-    const res = await fetch(`${BASE_URL}/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-      credentials: "include",
-    });
+const api = axios.create({
+  baseURL: "https://college-blog-qlqp.onrender.com/api/v1/users",
+  withCredentials: true,
+});
 
-    return res.json();
-  },
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
 
-  // Login user
-  login: async (loginData) => {
-    const res = await fetch(`${BASE_URL}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(loginData),
-      credentials: "include",
-    });
+    // Network or CORS error
+    if (!error.response) {
+      return Promise.reject(error);
+    }
 
-    return res.json();
-  },
+    // Prevent infinite loop & skip refresh endpoint
+    if (
+      error.response.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes("/refresh-token")
+    ) {
+      originalRequest._retry = true;
 
-  // Logout user
-  logout: async () => {
-    const res = await fetch(`${BASE_URL}/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
+      try {
+        // Cookies (refreshToken) sent automatically
+        await api.post("/refresh-token");
 
-    return res.json();
-  },
+        // Retry original request
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Optional: logout user here
+        return Promise.reject(refreshError);
+      }
+    }
 
-  // Get current user
-  currentUser: async () => {
-    const res = await fetch(`${BASE_URL}/currentUser`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    return res.json();
+    return Promise.reject(error);
   }
+);
+
+
+export const AuthService = {
+  register: (data) => api.post("/register", data),
+  login: (data) => api.post("/login", data),
+  logout: () => api.post("/logout"),
+
+  currentUser: () => api.get("/currentUser"),
+  profile: () => api.get("/profile"),
+
+  updateProfile: (data) => api.patch("/update-profile", data),
+  updateAvatar: (formData) =>
+    api.patch("/update-avatar", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+
+  changePassword: (data) => api.patch("/forget-password", data),
+  refreshToken: () => api.post("/refresh-token"),
 };
+
+export default api;

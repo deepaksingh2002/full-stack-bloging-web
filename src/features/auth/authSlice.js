@@ -4,6 +4,10 @@ import {
   loginUser,
   logoutUser,
   getCurrentUser,
+  getUserProfile,
+  updateUserProfile,
+  updateUserAvatar,
+  changeUserPassword,
 } from "./authThunks";
 
 const initialState = {
@@ -17,85 +21,122 @@ const initialState = {
 const authSlice = createSlice({
   name: "auth",
   initialState,
-
   reducers: {
-    clearAuthMessage: (state) => {
+    clearAuthState: (state) => {
       state.error = null;
       state.message = null;
     },
   },
 
   extraReducers: (builder) => {
+    // REGISTER
     builder
-
-      // REGISTER
       .addCase(registerUser.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.message = action.payload.message || "Registered successfully";
+        state.message = action.payload?.message;
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
-      })
+        state.error = action.payload;
+      });
 
-      // LOGIN
+    // LOGIN
+    builder
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.data;
+        state.user = action.payload?.user || action.payload;
         state.isAuthenticated = true;
-        state.message = action.payload.message || "Login successful";
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload;
         state.isAuthenticated = false;
-      })
+      });
 
-      // CURRENT USER
+    // CURRENT USER
+    builder
       .addCase(getCurrentUser.pending, (state) => {
         state.loading = true;
       })
       .addCase(getCurrentUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.data || null;
-        state.isAuthenticated = !!action.payload.data;
+        state.user = action.payload?.user || action.payload;
+        state.isAuthenticated = true;
       })
       .addCase(getCurrentUser.rejected, (state) => {
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
-      })
+      });
 
-      // LOGOUT
-      .addCase(logoutUser.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(logoutUser.fulfilled, (state, action) => {
-        state.loading = false;
+    // PROFILE
+    builder
+      .addCase(getUserProfile.fulfilled, (state, action) => {
+        state.user = action.payload?.user || state.user;
+      });
+
+    // UPDATE PROFILE
+    builder
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.user = action.payload?.user || state.user;
+        state.message = action.payload?.message;
+      });
+
+    // UPDATE AVATAR
+    builder
+      .addCase(updateUserAvatar.fulfilled, (state, action) => {
+        state.user = action.payload?.user || state.user;
+        state.message = action.payload?.message;
+      });
+
+    // CHANGE PASSWORD
+    builder
+      .addCase(changeUserPassword.fulfilled, (state, action) => {
+        state.message = action.payload?.message;
+      });
+
+    // LOGOUT
+    builder
+      .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
         state.isAuthenticated = false;
-        state.message = action.payload.message || "Logged out";
-      })
-      .addCase(logoutUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
       });
+
+    /** ================= ADD MATCHERS LAST ================= */
+
+    builder
+      .addMatcher(
+        (action) => action.type.endsWith("/pending"),
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        (action) => action.type.endsWith("/rejected"),
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload;
+        }
+      );
   },
 });
 
-export const { clearAuthMessage } = authSlice.actions;
+export const { clearAuthState } = authSlice.actions;
+export default authSlice.reducer;
 
-// Selectors (add these!)
+
 export const selectAuthUser = (state) => state.auth.user;
 export const selectAuthLoading = (state) => state.auth.loading;
-export const selectAuthMessage = (state) => state.auth.message;
 export const selectAuthError = (state) => state.auth.error;
+export const selectAuthMessage = (state) => state.auth.message;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 
-export default authSlice.reducer;
