@@ -5,9 +5,11 @@ import { useSelector } from "react-redux";
 import { selectIsAuthenticated, selectAuthUser} from '../../features/auth/authSlice';
 
 function Header() {
-  const authStatus = useSelector(selectIsAuthenticated);
-  const userData = useSelector(selectAuthUser);
   const navigate = useNavigate();
+  const authStatus = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectAuthUser);
+  const avatar = user?.avatar
+
 
   const navItems = [
     {
@@ -74,7 +76,7 @@ function Header() {
 
                 <li>
                   <img
-                    src={userData?.avatar || defaultAvatar}
+                    src={avatar || defaultAvatar}
                     onClick={() => navigate("/profile")}
                     className="w-12 h-12 rounded-full border-2 border-white cursor-pointer hover:scale-105 transition"
                     alt="User Avatar"

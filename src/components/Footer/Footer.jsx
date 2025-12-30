@@ -38,7 +38,7 @@ function Footer() {
                 <h3 className="tracking-px mb-8 font-bold uppercase text-left text-lg">Support</h3>
                 <ul>
                     <li className="mb-4">
-                        <Link className="text-base font-medium text-primary hover:text-accent-500 hover:underline transition-all duration-300" to="/">Account</Link>
+                        <Link className="text-base font-medium text-primary hover:text-accent-500 hover:underline transition-all duration-300" to="/profile">Account</Link>
                     </li>
                     <li className="mb-4">
                         <Link className="text-base font-medium text-primary hover:text-accent-500 hover:underline transition-all duration-300" to="/">Help</Link>
