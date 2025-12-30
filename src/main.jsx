@@ -1,4 +1,3 @@
-import React from 'react';
 import { createRoot } from 'react-dom/client';
 import Signup from './pages/Signup.jsx';
 import App from './App.jsx';
@@ -52,7 +51,7 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "/edit-post/:slug",
+        path: "/edit-post/:postId",
         element: (
           <AuthLayout authentication>
             <EditPost />
@@ -60,7 +59,7 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "/post/:slug",
+        path: "/post/:postId",
         element: <Post />,
       },
       {

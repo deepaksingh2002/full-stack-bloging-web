@@ -10,12 +10,9 @@ export default function Protected({ children, authentication = true }) {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   useEffect(() => {
-    // If route requires authentication and user is NOT authenticated => redirect to login
     if (authentication && !isAuthenticated) {
       navigate("/login");
     }
-
-    // If route is for guests only (like login/signup) and user IS authenticated => redirect to home
     if (!authentication && isAuthenticated) {
       navigate("/");
     }
