@@ -1,12 +1,23 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
+import React, { useCallback, useEffect } from 'react';
+import { useSelector,useDispatch } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 import { Contaner } from '../components';
-import { getCurrentUser } from '../features/auth/authThunks';
+
 
 function Profile() {
-    const { userData } = useSelector(getCurrentUser);
     const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    const dispatch = useDispatch();
+    const userData = useSelector();
+
+    const handleFatchData = useCallback(() => {
+        dispatch()
+    }, [dispatch]);
+
+    // LifeCycle :: fatch profile on mount
+    useEffect(() => {
+        handleFatchData();
+    }, [handleFatchData])
+
 
     // The AuthLayout should prevent this, but as a fallback:
     if (!userData) {
@@ -19,15 +30,22 @@ function Profile() {
                 <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-8">
                     <div className="text-center">
                         <img
-                            src={userData.avatar || defaultAvatar}
+                            src={userData?.avatar || defaultAvatar}
                             alt="User Avatar"
                             className="w-32 h-32 rounded-full mx-auto border-4 border-primary"
                         />
-                        <h1 className="text-3xl font-bold text-dark mt-4">{userData.name}</h1>
-                        <p className="text-lg text-gray-500 mt-2">{userData.email}</p>
+                        <h1 className="text-3xl font-bold text-dark mt-4">{userData?.fullName}</h1>
+                        <p className="text-lg text-gray-500 mt-2">{userData.username}</p>
                     </div>
                 </div>
+                <div>
+                    // subscribed
+                    // subscriber
+                </div>
             </Contaner>
+            <div>
+                //posts
+            </div>
         </div>
     );
 }
