@@ -1,20 +1,26 @@
-import React, { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { getAllPosts } from '../features/post/postThunks';
-import { selectAllPosts, selectPostLoading } from "../features/post/postSlice";
-import { Contaner, PostCard } from '../components';
-
+// src/pages/Home.jsx
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { getAllPosts } from "../features/post/postThunks";
+import {
+  selectAllPosts,
+  selectPostLoading,
+} from "../features/post/postSlice";
+import { Contaner, PostCard } from "../components";
 
 function Home() {
   const dispatch = useDispatch();
+
   const posts = useSelector(selectAllPosts);
   const loading = useSelector(selectPostLoading);
 
+  const safePosts = Array.isArray(posts) ? posts : [];
+
   useEffect(() => {
-    if (posts.length === 0) {
+    if (safePosts.length === 0) {
       dispatch(getAllPosts());
     }
-  }, [dispatch, posts.length]);
+  }, [dispatch, safePosts.length]);
 
   if (loading) {
     return (
@@ -24,7 +30,7 @@ function Home() {
     );
   }
 
-  if (posts.length === 0) {
+  if (safePosts.length === 0) {
     return (
       <div className="w-full py-8 text-center">
         <p>No posts found.</p>
@@ -36,8 +42,11 @@ function Home() {
     <div className="w-full py-8">
       <Contaner>
         <div className="flex flex-wrap -mx-2">
-          {posts.slice(0, 4).map((post) => (
-            <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 p-2" key={post._id}>
+          {safePosts.slice(0, 4).map((post) => (
+            <div
+              key={post._id || post.slug}
+              className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 p-2"
+            >
               <PostCard post={post} />
             </div>
           ))}
