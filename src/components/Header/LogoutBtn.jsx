@@ -2,9 +2,8 @@ import React from "react";
 import { useDispatch } from "react-redux";
 import { logoutUser } from "../../features/auth/authThunks";
 
-function LogoutBtn() {
+function LogoutBtn(){
   const dispatch = useDispatch();
-
   const handleLogout = () => {
     dispatch(logoutUser());
   };
