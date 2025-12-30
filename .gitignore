@@ -1,3 +1,8 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
 # Logs
 logs
 *.log
@@ -7,12 +12,15 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
+# Build output
 dist
 dist-ssr
-*.local
 
-# Editor directories and files
+# Dependencies
+node_modules
+bower_components
+
+# Editor directories & files
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -23,18 +31,15 @@ dist-ssr
 *.sln
 *.sw?
 
+# OS & temp files
+
 .DS_*
-*.log
-logs
 **/*.backup.*
 **/*.back.*
 
-node_modules
-bower_components
+# Misc
 
 *.sublime*
-
 psd
 thumb
 sketch
-
