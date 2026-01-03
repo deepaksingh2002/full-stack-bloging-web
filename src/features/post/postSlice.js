@@ -84,7 +84,7 @@ const postSlice = createSlice({
       })
       .addCase(getPostById.fulfilled, (state, action) => {
         state.loading = false;
-        state.singlePost = action.payload; // ✅ guaranteed to be a post
+        state.singlePost = action.payload; 
         state.error = null;
       })
       .addCase(getPostById.rejected, (state, action) => {

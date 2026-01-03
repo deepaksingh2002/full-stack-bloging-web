@@ -1,5 +1,7 @@
 import axios from "axios";
-const API = import.meta.env.VITE_API_URL
+
+const API = import.meta.env.VITE_API_URL;
+
 const api = axios.create({
   baseURL: `${API}/api/v1/post`,
   withCredentials: true,
@@ -8,31 +10,42 @@ const api = axios.create({
   },
 });
 
-// Token Interceptor
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-);
-
-// Response Interceptor - FIXED
 api.interceptors.response.use(
-  (response) => response.data, // Return response.data directly
-  (error) => {
-    const err = {
+  (response) => response.data, // always return data
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Access token expired → try refresh once
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true;
+
+      try {
+        await axios.post(
+          `${API}/api/v1/users/refresh-token`,
+          {},
+          { withCredentials: true }
+        );
+
+        return api(originalRequest);
+      } catch (refreshError) {
+        // refresh failed → logout
+        window.location.href = "/login";
+        return Promise.reject(refreshError);
+      }
+    }
+
+    // normalized error
+    return Promise.reject({
       statusCode: error.response?.status,
       message: error.response?.data?.message || error.message,
-      data: error.response?.data || null
-    }
-    console.error("api Error: ", err);
-    return Promise.reject(err); // CRITICAL: Always reject to propagate error
+      data: error.response?.data || null,
+    });
   }
 );
+
 
 export const postService = {
   createPost: (postData) => api.post('/create-post', postData),
