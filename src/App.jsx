@@ -2,22 +2,28 @@ import { useEffect } from 'react';
 import './App.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { getCurrentUser } from "./features/auth/authThunks";
-import { selectAuthLoading } from './features/auth/authSlice';
-
 import { Footer, Header } from './components';
 import { Outlet } from 'react-router-dom';
 
 function App() {
   const dispatch = useDispatch();
-  const loading = useSelector(selectAuthLoading);
-  useEffect(() => {
-      dispatch(getCurrentUser());
-  }, [dispatch]);
+  const { authChecked } = useSelector((state) => state.auth);
 
-  // Global loader (important!)
-  if (loading) {
+  useEffect(() => {
+    if (!authChecked) {
+      dispatch(getCurrentUser());
+    }
+  }, [authChecked, dispatch]);
+
+//   useEffect(() => {
+//   console.log("getCurrentUser fired");
+//   dispatch(getCurrentUser());
+// }, [dispatch]);
+
+
+  if (!authChecked) {
     return (
-      <div className="h-screen flex items-center justify-center text-xl font-semibold">
+      <div className="h-screen flex items-center justify-center text-xl">
         Loading...
       </div>
     );
@@ -34,4 +40,4 @@ function App() {
   );
 }
 
-export default App;
+ export default App;
