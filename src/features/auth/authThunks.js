@@ -50,13 +50,16 @@ export const getCurrentUser = createAsyncThunk(
   "auth/currentUser",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await AuthService.currentUser();
+      const res = await AuthService.currentUser({
+        skipAuthRefresh: true, 
+      });
       return res.data;
     } catch (err) {
-      return rejectWithValue(handleError(err));
+      return rejectWithValue(null);
     }
   }
 );
+
 
 // PROFILE
 export const getUserProfile = createAsyncThunk(

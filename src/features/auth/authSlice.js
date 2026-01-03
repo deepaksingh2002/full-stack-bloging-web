@@ -16,7 +16,9 @@ const initialState = {
   error: null,
   message: null,
   isAuthenticated: false,
+  authChecked: false, 
 };
+
 
 const authSlice = createSlice({
   name: "auth",
@@ -67,15 +69,20 @@ const authSlice = createSlice({
         state.loading = true;
       })
       .addCase(getCurrentUser.fulfilled, (state, action) => {
+        // console.log("getCurrentUser FULFILLED:", action.payload);
         state.loading = false;
         state.user = action.payload?.user || action.payload;
         state.isAuthenticated = true;
+        state.authChecked = true;
       })
       .addCase(getCurrentUser.rejected, (state) => {
+        // console.log("getCurrentUser REJECTED:", action.payload);
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
+        state.authChecked = true;
       });
+
 
     // PROFILE
     builder
