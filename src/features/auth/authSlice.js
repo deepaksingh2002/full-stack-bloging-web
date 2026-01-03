@@ -117,7 +117,6 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
       });
 
-    /** ================= ADD MATCHERS LAST ================= */
 
     builder
       .addMatcher(

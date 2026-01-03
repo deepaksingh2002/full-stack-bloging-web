@@ -55,7 +55,7 @@ export const getCurrentUser = createAsyncThunk(
       });
       return res.data;
     } catch (err) {
-      return rejectWithValue(null);
+      return rejectWithValue(err);
     }
   }
 );

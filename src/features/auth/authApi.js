@@ -15,13 +15,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
-    // 🚫 DO NOT refresh for auth-check requests
+    
     if (originalRequest?.skipAuthRefresh) {
       return Promise.reject(error);
     }
 
-    // 🚫 DO NOT intercept refresh-token itself
     if (originalRequest.url?.includes("/refresh-token")) {
       return Promise.reject(error);
     }
