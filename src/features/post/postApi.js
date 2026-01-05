@@ -5,17 +5,14 @@ const API = import.meta.env.VITE_API_URL;
 const api = axios.create({
   baseURL: `${API}/api/v1/post`,
   withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 api.interceptors.response.use(
-  (response) => response.data, // always return data
+  (response) => response.data, 
   async (error) => {
     const originalRequest = error.config;
 
-    // Access token expired → try refresh once
+    // Access token expired -> try refresh once
     if (
       error.response?.status === 401 &&
       !originalRequest._retry
@@ -31,13 +28,11 @@ api.interceptors.response.use(
 
         return api(originalRequest);
       } catch (refreshError) {
-        // refresh failed → logout
         window.location.href = "/login";
         return Promise.reject(refreshError);
       }
     }
 
-    // normalized error
     return Promise.reject({
       statusCode: error.response?.status,
       message: error.response?.data?.message || error.message,

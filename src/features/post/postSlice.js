@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import {
   getAllPosts,
+  getMyPosts,
   getPostById,
   createPost,
   updatePost,
@@ -54,12 +55,10 @@ const postSlice = createSlice({
         state.loading = false;
         const payload = action.payload;
         
-        // FIXED: Handle different response structures
         if (Array.isArray(payload)) {
           state.posts = payload;
         } else if (payload.data && Array.isArray(payload.data)) {
           state.posts = payload.data;
-          // Update pagination if available
           if (payload.pagination) {
             state.pagination = payload.pagination;
           }
@@ -75,6 +74,21 @@ const postSlice = createSlice({
         state.error = action.payload || "Failed to fetch posts";
         state.posts = [];
       })
+
+      // GET POsts
+
+    builder
+      .addCase(getMyPosts.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getMyPosts.fulfilled, (state, action) => {
+        state.loading = false;
+        state.posts = action.payload;
+      })
+      .addCase(getMyPosts.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
 
       // GET POST BY ID
     builder

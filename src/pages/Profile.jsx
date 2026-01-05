@@ -1,53 +1,95 @@
-import React, { useCallback, useEffect } from 'react';
-import { useSelector,useDispatch } from 'react-redux';
-import { Navigate } from 'react-router-dom';
-import { Contaner } from '../components';
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Navigate } from "react-router-dom";
+import { getUserProfile } from "../features/auth/authThunks";
 
 
-function Profile() {
-    const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-    const dispatch = useDispatch();
-    const userData = useSelector();
+const Profile = () => {
+  const dispatch = useDispatch();
 
-    const handleFatchData = useCallback(() => {
-        dispatch()
-    }, [dispatch]);
+  const { user, loading } = useSelector((state) => state.auth);
+  const { posts, loading: postLoading } = useSelector((state) => state.post);
 
-    // LifeCycle :: fatch profile on mount
-    useEffect(() => {
-        handleFatchData();
-    }, [handleFatchData])
+  const defaultAvatar =
+    "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
+  useEffect(() => {
+    dispatch(getUserProfile());
+  }, [dispatch]);
 
-    // The AuthLayout should prevent this, but as a fallback:
-    if (!userData) {
-        return <Navigate to="/login" />;
-    }
-
+  if (loading) {
     return (
-        <div className="w-full py-8">
-            <Contaner>
-                <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-8">
-                    <div className="text-center">
-                        <img
-                            src={userData?.avatar || defaultAvatar}
-                            alt="User Avatar"
-                            className="w-32 h-32 rounded-full mx-auto border-4 border-primary"
-                        />
-                        <h1 className="text-3xl font-bold text-dark mt-4">{userData?.fullName}</h1>
-                        <p className="text-lg text-gray-500 mt-2">{userData.username}</p>
-                    </div>
-                </div>
-                <div>
-                    // subscribed
-                    // subscriber
-                </div>
-            </Contaner>
-            <div>
-                //posts
-            </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
     );
-}
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f7f2df] flex justify-center p-6">
+      <div className="w-full max-w-2xl border-2 border-gray-700 rounded-lg p-6 bg-[#f7f2df]">
+
+        {/* Profile Info */}
+        <div className="flex items-center gap-6 mb-6">
+          <img
+            src={user.avatar || defaultAvatar}
+            alt="avatar"
+            className="w-24 h-24 rounded-full border-2 border-gray-700 object-cover"
+          />
+          <div>
+            <p className="text-lg font-semibold">@{user.username}</p>
+            <p className="text-gray-700">{user.fullName}</p>
+          </div>
+        </div>
+
+        {/* Followers */}
+        <div className="flex gap-12 mb-6">
+          <div>
+            <p className="text-xl font-bold underline">
+              {user.subscribersCount || 0}
+            </p>
+            <p>followers</p>
+          </div>
+          <div>
+            <p className="text-xl font-bold underline">
+              {user.subscribedToCount || 0}
+            </p>
+            <p>following</p>
+          </div>
+        </div>
+
+        {/* Posts */}
+        <div className="border-2 border-gray-700 rounded-lg p-4">
+          <h2 className="text-xl font-semibold mb-4">Posts</h2>
+
+          {postLoading && <p>Loading posts...</p>}
+
+          {!postLoading && posts.length === 0 && (
+            <p className="text-gray-600">No posts yet</p>
+          )}
+
+          <div className="space-y-4">
+            {posts.map((post) => (
+              <div
+                key={post._id}
+                className="border border-gray-600 rounded p-3"
+              >
+                <h3 className="font-semibold">{post.title}</h3>
+                <p className="text-gray-700 text-sm">
+                  {post.content?.slice(0, 120)}...
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
 
 export default Profile;

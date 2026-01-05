@@ -1,36 +1,37 @@
-import React from 'react';
-import {Editor } from '@tinymce/tinymce-react';
-import { Controller } from 'react-hook-form';
+import React from "react";
+import { Editor } from "@tinymce/tinymce-react";
+import { Controller } from "react-hook-form";
 
-
-export default function RTE({name, control, labal, defaultValue ="" }) {
+export default function RTE({ name = "content", control, label }) {
   return (
-    <div className='w-full'>
-     {labal && <labal className="inline-block mb-1 pl-1"> 
-        {labal} </labal>}
+    <div className="w-full">
+      {label && (
+        <label className="block mb-2 font-medium text-gray-700">
+          {label}
+        </label>
+      )}
 
-        <Controller 
-        name={name || "content"}
+      <Controller
+        name={name}
         control={control}
-        render = {({field : {onChange}}) => (
-             <Editor  
-                apiKey='9q48r6ahvenb49j1wup9j08pauaumik7zjyfaod3z7ifldge'
-                initialValue={defaultValue}
-                init={
-                      {
-                          initialValue: defaultValue,
-                          height: 500,
-                          menubar: true,
-                          plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
-                          toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
-                          content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }'
-                      }}
-                      onEditorChange={onChange}
-                    />
+        defaultValue=""
+        rules={{ required: true }}
+        render={({ field }) => (
+          <Editor
+            apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
+            value={field.value}
+            onEditorChange={field.onChange}
+            init={{
+              height: 400,
+              menubar: true,
+              plugins:
+                "anchor autolink charmap codesample emoticons image link lists media table visualblocks wordcount",
+              toolbar:
+                "undo redo | blocks | bold italic underline | bullist numlist | link image | removeformat",
+            }}
+          />
         )}
-
-        />
+      />
     </div>
-  )
+  );
 }
-
