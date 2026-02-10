@@ -23,7 +23,7 @@ function Home() {
 
   if (loading) {
     return (
-      <div className="w-full py-8 text-center">
+      <div className="w-full py-8 text-center pt-32">
         <h1>Loading posts...</h1>
       </div>
     );
@@ -31,14 +31,14 @@ function Home() {
 
   if (safePosts.length === 0) {
     return (
-      <div className="w-full py-8 text-center">
+      <div className="w-full py-8 text-center pt-32">
         <p>No posts found.</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full py-8">
+    <div className="w-full pt-32 pb-8">
       <Contaner>
         <div className="flex flex-wrap -mx-2">
           {safePosts.slice(0, 4).map((post) => (
