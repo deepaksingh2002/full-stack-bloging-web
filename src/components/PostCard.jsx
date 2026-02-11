@@ -1,7 +1,14 @@
 import React, { memo } from "react";
 import { Link } from "react-router-dom";
+import { 
+  HiTag, 
+  HiEye, 
+  HiUserCircle, 
+  HiArrowRight,
+  HiHeart 
+} from 'react-icons/hi2';
 
-const PostCard = memo(function PostCard({ post }) {
+const PostCard = memo(function PostCard({ post, onLike, likes = 0, liked = false }) {
   if (!post) return null;
 
   const {
@@ -9,12 +16,12 @@ const PostCard = memo(function PostCard({ post }) {
     thumbnail,
     createdAt,
     owner,
-    category, // ✅ Fixed: was catagry
+    category,
     views
   } = post;
 
   const author = owner?.username || "Unknown Author";
-  const safeCategory = category || ""; // ✅ Fixed
+  const safeCategory = category || "";
 
   const formatDate = (date) => {
     if (!date) return "";
@@ -34,7 +41,7 @@ const PostCard = memo(function PostCard({ post }) {
     if (url.includes("cloudinary.com")) {
       const parts = url.split("/upload/");
       if (parts.length === 2) {
-        return `${parts[0]}/upload/q_80,w_400,c_fill,ar_4:3/${parts[1]}`;
+        return `${parts[0]}/upload/q_80,w_350,c_fill,ar_16:9/${parts[1]}`;
       }
     }
     return url;
@@ -43,73 +50,86 @@ const PostCard = memo(function PostCard({ post }) {
   const truncateText = (text, maxLength = 60) => {
     if (!text) return "Untitled Post";
     return text.length > maxLength
-      ? text.slice(0, maxLength) + "..."
+      ? text.slice(0, maxLength).trim() + "..."
       : text;
   };
 
   return (
     <Link
       to={`/post/${post._id}`}
-      className="block group h-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-2xl"
+      className="group relative block h-[360px] w-full focus:outline-none focus:ring-2 focus:ring-primary/30 rounded-2xl hover:scale-[1.02] transition-all duration-500 hover:-translate-y-2 bg-gradient-to-b from-white/20 to-white/5 backdrop-blur-xl border border-primary/10 hover:border-primary/20 shadow-lg hover:shadow-xl"
       aria-label={`Read post: ${title || "Untitled"}`}
     >
-      <article className="bg-white p-4 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 h-full flex flex-col overflow-hidden border border-gray-100">
-        <div className="w-full mb-4 overflow-hidden rounded-xl aspect-[4/3] bg-gray-100">
-          <img
-            src={optimizeImageUrl(thumbnail)}
-            alt={title || "Post thumbnail"}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-          />
-        </div>
-
-        <div className="flex flex-col flex-grow">
-          <div className="flex flex-row justify-between">
-            {safeCategory && (
-              <span className="mb-2 inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full w-fit">
-                {safeCategory}
-              </span>
-            )}
-            <span className="mb-2 inline-block text-gray-500 text-xs font-semibold px-3 py-1 rounded-full w-fit">
-              views: {views}
-            </span>
+      <div className="relative h-[42%] w-full overflow-hidden rounded-t-2xl bg-gradient-to-br from-primary/5 to-transparent">
+        <img
+          src={optimizeImageUrl(thumbnail)}
+          alt={title || "Post thumbnail"}
+          className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105 group-hover:brightness-105"
+          loading="lazy"
+        />
+        
+        {safeCategory && (
+          <div className="absolute top-3 left-3 z-10">
+            <div className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-primary bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white hover:shadow-lg hover:scale-105 transition-all duration-300 border border-primary/20">
+              <HiTag className="w-3 h-3 flex-shrink-0" />
+              <span>{safeCategory}</span>
+            </div>
           </div>
-          
-          <h2 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 flex-grow">
+        )}
+      </div>
+
+      <div className="flex flex-col h-[58%] p-5 space-y-3 bg-white/10 backdrop-blur-md border-t border-white/20">
+        <div className="flex items-start justify-between h-14">
+          <h2 className="flex-1 text-base font-bold text-black leading-tight line-clamp-2 pr-6 group-hover:text-primary transition-colors duration-300">
             {truncateText(title)}
           </h2>
-
-          <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500 space-y-1">
-            <p>
-              <span className="font-semibold">By </span>
-              {author}
-            </p>
-            {createdAt && (
-              <p>
-                <span className="font-semibold">Published </span>
-                {formatDate(createdAt)}
-              </p>
-            )}
-          </div>
-
-          <div className="mt-4 flex items-center text-blue-600 group-hover:text-blue-700 text-sm font-semibold">
-            Read Post
-            <svg
-              className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 7l5 5m0 0l-5 5m5-5H6"
-              />
-            </svg>
+          <div className="flex-shrink-0 ml-1.5">
+            <div className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-white bg-primary/90 backdrop-blur-sm rounded-full hover:bg-primary hover:shadow-lg hover:scale-105 transition-all duration-300 shadow-md">
+              <HiEye className="w-3 h-3 flex-shrink-0" />
+              <span>{views || 0}</span>
+            </div>
           </div>
         </div>
-      </article>
+
+        <div className="flex items-center justify-between pt-1 border-t border-white/20 pb-2 text-xs">
+          <div className="flex items-center gap-2 text-gray-700 flex-shrink-0">
+            <div className="p-1.5 rounded-full bg-primary/10 border border-primary/20">
+              <HiUserCircle className="w-4 h-4 text-primary" />
+            </div>
+            <span className="font-semibold max-w-20 truncate">{author}</span>
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onLike?.(post._id);
+            }}
+            className="group/like flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-primary/90 backdrop-blur-sm rounded-full border border-primary/20 hover:bg-primary hover:shadow-lg hover:shadow-primary/25 hover:scale-105 transition-all duration-300 active:scale-95 shadow-md"
+            title="Like post"
+          >
+            <HiHeart 
+              className={`w-3.5 h-3.5 transition-all duration-300 ${
+                liked 
+                  ? 'text-white/90 fill-white scale-110 shadow-sm' 
+                  : 'text-white/70 group-hover/like:scale-110'
+              }`} 
+            />
+            <span className={`${liked ? 'text-white font-bold' : 'text-white/80 group-hover/like:text-white'}`}>
+              {likes}
+            </span>
+          </button>
+        </div>
+
+        <div className="flex-1 flex items-end pb-2">
+          <div className="w-full flex justify-center">
+            <div className="flex items-center gap-1.5 text-black/90 hover:text-primary font-bold text-sm group-hover:gap-2.5 transition-all duration-300">
+              <span>Read More</span>
+              <HiArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+            </div>
+          </div>
+        </div>
+      </div>
     </Link>
   );
 });
