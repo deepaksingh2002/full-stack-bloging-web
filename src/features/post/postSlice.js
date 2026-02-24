@@ -1,7 +1,6 @@
 import { createSlice, createSelector, createEntityAdapter } from "@reduxjs/toolkit";
 import {
   getAllPosts,
-  getMyPosts,
   getPostById,
   createPost,
   updatePost,
@@ -26,6 +25,14 @@ const initialState = postAdapter.getInitialState({
     totalPages: 0,
   },
 });
+
+const extractPostList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.posts)) return payload.data.posts;
+  if (Array.isArray(payload?.posts)) return payload.posts;
+  return [];
+};
 
 const extractLikeState = (payload = {}) => {
   const base = payload?.data || payload;
@@ -82,7 +89,7 @@ const postSlice = createSlice({
       })
       .addCase(getAllPosts.fulfilled, (state, action) => {
         state.loading = false;
-        postAdapter.setAll(state, action.payload.data || action.payload);
+        postAdapter.setAll(state, extractPostList(action.payload));
       })
       .addCase(getAllPosts.rejected, (state, action) => {
         state.loading = false;
@@ -99,6 +106,18 @@ const postSlice = createSlice({
       .addCase(getPostById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Failed to fetch post";
+      })
+      .addCase(searchPosts.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(searchPosts.fulfilled, (state, action) => {
+        state.loading = false;
+        postAdapter.setAll(state, extractPostList(action.payload));
+      })
+      .addCase(searchPosts.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to search posts";
       })
       .addCase(createPost.fulfilled, (state, action) => {
         state.loading = false;

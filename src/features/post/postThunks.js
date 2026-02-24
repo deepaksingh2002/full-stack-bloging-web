@@ -1,5 +1,5 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { likeService, postService } from "./postApi";
+import { commentService, likeService, postService } from "./postApi";
 
 export const getAllPosts = createAsyncThunk(
   "posts/getAllPosts",
@@ -103,6 +103,66 @@ export const getLikedPosts = createAsyncThunk(
       return response;
     } catch (error) {
       return rejectWithValue(error.message || "Failed to fetch liked posts");
+    }
+  }
+);
+
+export const getPostComments = createAsyncThunk(
+  "comment/getPostComments",
+  async (postId, { rejectWithValue }) => {
+    try {
+      const response = await commentService.getPostComments(postId);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to fetch comments");
+    }
+  }
+);
+
+export const createComment = createAsyncThunk(
+  "comment/createComment",
+  async ({ postId, content }, { rejectWithValue }) => {
+    try {
+      const response = await commentService.createComment(postId, { content });
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to create comment");
+    }
+  }
+);
+
+export const updateComment = createAsyncThunk(
+  "comment/updateComment",
+  async ({ commentId, content }, { rejectWithValue }) => {
+    try {
+      const response = await commentService.updateComment(commentId, { content });
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to update comment");
+    }
+  }
+);
+
+export const deleteComment = createAsyncThunk(
+  "comment/deleteComment",
+  async (commentId, { rejectWithValue }) => {
+    try {
+      await commentService.deleteComment(commentId);
+      return commentId;
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to delete comment");
+    }
+  }
+);
+
+export const toggleCommentLike = createAsyncThunk(
+  "comment/toggleLike",
+  async (commentId, { rejectWithValue }) => {
+    try {
+      const response = await likeService.toggleCommentLike(commentId);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to toggle comment like");
     }
   }
 );

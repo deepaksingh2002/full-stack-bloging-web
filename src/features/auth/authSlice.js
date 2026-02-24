@@ -71,19 +71,58 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.authChecked = true;
       })
+      .addCase(getUserProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(getUserProfile.fulfilled, (state, action) => {
+        state.loading = false;
         state.user = action.payload?.user || state.user;
+      })
+      .addCase(getUserProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(updateUserProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.message = null;
       })
       .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.loading = false;
         state.user = action.payload?.user || state.user;
         state.message = action.payload?.message;
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(updateUserAvatar.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.message = null;
       })
       .addCase(updateUserAvatar.fulfilled, (state, action) => {
+        state.loading = false;
         state.user = action.payload?.user || state.user;
         state.message = action.payload?.message;
       })
+      .addCase(updateUserAvatar.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(changeUserPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.message = null;
+      })
       .addCase(changeUserPassword.fulfilled, (state, action) => {
+        state.loading = false;
         state.message = action.payload?.message;
+      })
+      .addCase(changeUserPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;

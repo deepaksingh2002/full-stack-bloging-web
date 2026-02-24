@@ -11,7 +11,7 @@ const api = axios.create({
 const refreshApi = axios.create({
   baseURL: `${API}/api/v1/users`,
   withCredentials: true,
-  timeout: 6000,
+  timeout: 10000,
 });
 
 api.interceptors.response.use(
@@ -55,7 +55,7 @@ export const AuthService = {
     api.patch("/update-avatar", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
-  changeUserPassword: (data) => api.patch("/forget-password", data),
+  changeUserPassword: (data) => api.patch("/change-password", data),
   refreshToken: () => api.post("/refresh-token"),
 };
 

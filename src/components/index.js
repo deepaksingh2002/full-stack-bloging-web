@@ -11,6 +11,7 @@ import Signup from "./Signup";
 import Login from './Login';
 import PostForm from './PostForm/PostForm';
 import PostCard from './PostCard';
+import PostListCard from './PostListCard';
 import AuthLayout from './AuthLayout';
 import Profile from "../pages/Profile";
 import LoadingAnimation from "./Animation/LoadingAnimation";
@@ -29,6 +30,7 @@ export {
     Login,
     PostForm,
     PostCard,
+    PostListCard,
     AuthLayout,
     Profile,
     LoadingAnimation

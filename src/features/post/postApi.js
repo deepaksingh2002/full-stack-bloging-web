@@ -14,6 +14,12 @@ const likeApi = axios.create({
   timeout: 10000,
 });
 
+const commentApi = axios.create({
+  baseURL: `${API}/api/v1/comment`,
+  withCredentials: true,
+  timeout: 10000,
+});
+
 const attachAuthRefreshInterceptor = (client) => {
   client.interceptors.response.use(
     (response) => response.data,
@@ -45,6 +51,7 @@ const attachAuthRefreshInterceptor = (client) => {
 
 attachAuthRefreshInterceptor(api);
 attachAuthRefreshInterceptor(likeApi);
+attachAuthRefreshInterceptor(commentApi);
 
 export const postService = {
   createPost: (postData) => api.post('/create-post', postData),
@@ -56,9 +63,34 @@ export const postService = {
 };
 
 export const likeService = {
-  togglePostLike: (postId) => likeApi.post(`/toggle/post/${postId}`),
-  toggleCommentLike: (commentId) => likeApi.post(`/toggle/comment/${commentId}`),
-  getLikedPosts: () => likeApi.get('/liked/posts'),
+  togglePostLike: async (postId) => {
+    try {
+      return await likeApi.post(`/posts/${postId}/toggle`);
+    } catch {
+      return likeApi.post(`/toggle/post/${postId}`);
+    }
+  },
+  toggleCommentLike: async (commentId) => {
+    try {
+      return await likeApi.post(`/comments/${commentId}/toggle`);
+    } catch {
+      return likeApi.post(`/toggle/comment/${commentId}`);
+    }
+  },
+  getLikedPosts: async () => {
+    try {
+      return await likeApi.get("/posts");
+    } catch {
+      return likeApi.get("/liked/posts");
+    }
+  },
+};
+
+export const commentService = {
+  getPostComments: (postId) => commentApi.get(`/post/${postId}`),
+  createComment: (postId, data) => commentApi.post(`/post/${postId}`, data),
+  updateComment: (commentId, data) => commentApi.patch(`/${commentId}`, data),
+  deleteComment: (commentId) => commentApi.delete(`/${commentId}`),
 };
 
 export default api;

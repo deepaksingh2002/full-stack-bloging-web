@@ -107,6 +107,13 @@ The frontend expects backend endpoints under:
 - `${VITE_API_URL}/api/v1/post`
 - `${VITE_API_URL}/api/v1/like`
 
+Profile routes used by frontend:
+
+- `GET /api/v1/users/profile`
+- `PATCH /api/v1/users/update-profile`
+- `PATCH /api/v1/users/update-avatar` (multipart form-data, field: `avatar`)
+- `PATCH /api/v1/users/change-password`
+
 Like routes used by frontend:
 
 - `POST /api/v1/like/toggle/post/:postId`
