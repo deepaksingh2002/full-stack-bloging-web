@@ -26,7 +26,7 @@ const attachAuthRefreshInterceptor = (client) => {
           await axios.post(
             `${API}/api/v1/users/refresh-token`,
             {},
-            { withCredentials: true, timeout: 6000 }
+            { withCredentials: true, timeout: 10000 }
           );
           return client(originalRequest);
         } catch (refreshError) {
@@ -50,9 +50,9 @@ export const postService = {
   createPost: (postData) => api.post('/create-post', postData),
   getAllPosts: (params = {}) => api.get('/getAll-post', { params }),
   getPostById: (postId) => api.get(`/get-post/${postId}`),
-  updatePost: (postId, postData) => api.patch(`/update-post/${postId}`, postData),
+  updatePost: (postId, postData) => api.put(`/update-post/${postId}`, postData),
   deletePost: (postId) => api.delete(`/delete-post/${postId}`),
-  searchPosts: (query) => api.get('/search', { params: { q: query } }),
+  searchPosts: (query) => api.get('/search-post', { params: { q: query } }),
 };
 
 export const likeService = {
