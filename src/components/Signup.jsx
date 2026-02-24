@@ -67,18 +67,18 @@ function Signup() {
   };
 
   return (
-    <div className="flex items-center justify-center w-full min-h-screen">
-      <div className="mx-auto w-full max-w-lg bg-gray-100 rounded-xl p-10 m-10 border border-black/10 shadow-lg">
+    <div className="flex items-center justify-center w-full min-h-screen px-4">
+      <div className="mx-auto w-full max-w-lg bg-gray-100 rounded-xl p-10 m-10 border border-black/10 shadow-lg transition-colors dark:bg-slate-800 dark:border-slate-700">
         <div className="mb-2 flex justify-center">
           <span className="inline-block w-full max-w-[100px]">
             <Logo width="100%" />
           </span>
         </div>
 
-        <h2 className="text-center text-2xl font-bold leading-tight text-gray-900">
+        <h2 className="text-center text-2xl font-bold leading-tight text-gray-900 dark:text-slate-100">
           Create your account
         </h2>
-        <p className="mt-2 text-center text-base text-black/60">
+        <p className="mt-2 text-center text-base text-black/60 dark:text-slate-300">
           Already have an account?&nbsp;
           <Link
             to="/login"
@@ -89,7 +89,7 @@ function Signup() {
         </p>
 
         {serverError && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg dark:bg-red-950/30 dark:border-red-800">
             <p className="text-red-600 font-medium text-sm">{serverError}</p>
           </div>
         )}

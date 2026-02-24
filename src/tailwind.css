@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
 
 /* Define custom colors */
 :root {
@@ -11,6 +12,10 @@
   --color-background: #FFFFFF;
   --color-aqua: #4BC4C0;
   --color-beige: #F4EDE5;
+}
+
+.dark {
+  color-scheme: dark;
 }
 
 /* Add these colors to Tailwind theme using @theme */

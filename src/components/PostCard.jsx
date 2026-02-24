@@ -57,7 +57,7 @@ const PostCard = memo(function PostCard({ post, onLike, likes = 0, liked = false
   return (
     <Link
       to={`/post/${post._id}`}
-      className="group relative block h-[360px] w-full focus:outline-none focus:ring-2 focus:ring-primary/30 rounded-2xl hover:scale-[1.02] transition-all duration-500 hover:-translate-y-2 bg-gradient-to-b from-white/20 to-white/5 backdrop-blur-xl border border-primary/10 hover:border-primary/20 shadow-lg hover:shadow-xl"
+      className="group relative block h-[360px] w-full focus:outline-none focus:ring-2 focus:ring-primary/30 rounded-2xl hover:scale-[1.02] transition-all duration-500 hover:-translate-y-2 bg-gradient-to-b from-white/20 to-white/5 backdrop-blur-xl border border-primary/10 hover:border-primary/20 shadow-lg hover:shadow-xl dark:from-slate-800/70 dark:to-slate-900/80 dark:border-slate-700"
       aria-label={`Read post: ${title || "Untitled"}`}
     >
       <div className="relative h-[42%] w-full overflow-hidden rounded-t-2xl bg-gradient-to-br from-primary/5 to-transparent">
@@ -78,9 +78,9 @@ const PostCard = memo(function PostCard({ post, onLike, likes = 0, liked = false
         )}
       </div>
 
-      <div className="flex flex-col h-[58%] p-5 space-y-3 bg-white/10 backdrop-blur-md border-t border-white/20">
+      <div className="flex flex-col h-[58%] p-5 space-y-3 bg-white/10 backdrop-blur-md border-t border-white/20 dark:bg-slate-900/70 dark:border-slate-700">
         <div className="flex items-start justify-between h-14">
-          <h2 className="flex-1 text-base font-bold text-black leading-tight line-clamp-2 pr-6 group-hover:text-primary transition-colors duration-300">
+          <h2 className="flex-1 text-base font-bold text-black leading-tight line-clamp-2 pr-6 group-hover:text-primary transition-colors duration-300 dark:text-slate-100">
             {truncateText(title)}
           </h2>
           <div className="flex-shrink-0 ml-1.5">
@@ -91,12 +91,15 @@ const PostCard = memo(function PostCard({ post, onLike, likes = 0, liked = false
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-1 border-t border-white/20 pb-2 text-xs">
-          <div className="flex items-center gap-2 text-gray-700 flex-shrink-0">
+        <div className="flex items-center justify-between pt-1 border-t border-white/20 pb-2 text-xs dark:border-slate-700">
+          <div className="flex items-center gap-2 text-gray-700 flex-shrink-0 dark:text-slate-300">
             <div className="p-1.5 rounded-full bg-primary/10 border border-primary/20">
               <HiUserCircle className="w-4 h-4 text-primary" />
             </div>
-            <span className="font-semibold max-w-20 truncate">{author}</span>
+            <div className="flex flex-col leading-tight">
+              <span className="font-semibold max-w-20 truncate">{author}</span>
+              <span className="text-[10px] text-gray-500 dark:text-slate-400">{formatDate(createdAt)}</span>
+            </div>
           </div>
 
           <button
@@ -123,7 +126,7 @@ const PostCard = memo(function PostCard({ post, onLike, likes = 0, liked = false
 
         <div className="flex-1 flex items-end pb-2">
           <div className="w-full flex justify-center">
-            <div className="flex items-center gap-1.5 text-black/90 hover:text-primary font-bold text-sm group-hover:gap-2.5 transition-all duration-300">
+            <div className="flex items-center gap-1.5 text-black/90 hover:text-primary font-bold text-sm group-hover:gap-2.5 transition-all duration-300 dark:text-slate-200">
               <span>Read More</span>
               <HiArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
             </div>

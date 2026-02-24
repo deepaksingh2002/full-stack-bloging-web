@@ -50,7 +50,7 @@ function Home() {
 
   if (loading) {
     return (
-      <div className="w-full pt-32 min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
+      <div className="w-full pt-32 min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white dark:from-slate-900 dark:to-slate-950">
         <div className="text-center space-y-8">
           <div className="w-24 h-24 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto border-2 border-primary/20 animate-gentle-pulse">
             <div className="w-12 h-12 bg-primary/30 rounded-xl animate-pulse flex items-center justify-center font-bold text-sm text-white">
@@ -58,7 +58,7 @@ function Home() {
             </div>
           </div>
           <LoadingAnimation type="spinner" size="lg" color="primary" />
-          <h1 className="text-2xl font-bold text-black/80">Loading Stories...</h1>
+          <h1 className="text-2xl font-bold text-black/80 dark:text-slate-100">Loading Stories...</h1>
         </div>
       </div>
     );
@@ -66,7 +66,7 @@ function Home() {
 
   if (featuredPosts.length === 0) {
     return (
-      <div className="w-full pt-32 min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      <div className="w-full pt-32 min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
         <Contaner className="relative">
           <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
             <div className="w-32 h-32 bg-primary/5 backdrop-blur-xl rounded-3xl flex items-center justify-center mb-12 border border-primary/10 animate-float shadow-xl">
@@ -74,10 +74,10 @@ function Home() {
                 {Logo}
               </div>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black text-black mb-8 leading-tight">
+            <h1 className="text-5xl md:text-7xl font-black text-black mb-8 leading-tight dark:text-slate-100">
               No Posts Yet
             </h1>
-            <p className="text-xl md:text-2xl text-black/70 mb-12 max-w-2xl mx-auto leading-relaxed animate-slide-up">
+            <p className="text-xl md:text-2xl text-black/70 mb-12 max-w-2xl mx-auto leading-relaxed animate-slide-up dark:text-slate-300">
               Be the first to share your story!
             </p>
             <Link 
@@ -96,23 +96,23 @@ function Home() {
   }
 
   return (
-    <div className="w-full pt-32 pb-16 bg-gradient-to-br from-gray-50 via-white to-gray-50">
+    <div className="w-full pt-32 pb-16 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
       <Contaner className="relative">
         {/* ORIGINAL Hero Section - UNCHANGED */}
         <div className="text-center py-24 mb-20">
-          <h1 className="text-6xl md:text-8xl font-black text-black mb-8 leading-tight animate-slide-up">
+          <h1 className="text-6xl md:text-8xl font-black text-black mb-8 leading-tight animate-slide-up dark:text-slate-100">
             Discover
             <span className="block text-7xl md:text-9xl text-primary font-black animate-float">Stories</span>
           </h1>
-          <p className="text-2xl md:text-3xl text-black/70 max-w-4xl mx-auto mb-16 leading-relaxed animate-slide-up">
+          <p className="text-2xl md:text-3xl text-black/70 max-w-4xl mx-auto mb-16 leading-relaxed animate-slide-up dark:text-slate-300">
             Explore latest posts from creators around the world
           </p>
           <div className="flex flex-wrap gap-4 justify-center max-w-xl mx-auto animate-slide-up">
-            <div className="group flex items-center gap-3 px-8 py-4 bg-primary/5 backdrop-blur-xl rounded-2xl border-2 border-primary/10 hover:bg-primary/10 hover:border-primary/20 hover:shadow-lg transition-all duration-500">
+            <div className="group flex items-center gap-3 px-8 py-4 bg-primary/5 backdrop-blur-xl rounded-2xl border-2 border-primary/10 hover:bg-primary/10 hover:border-primary/20 hover:shadow-lg transition-all duration-500 dark:bg-slate-800/70 dark:border-slate-700">
               <div className="w-3 h-3 bg-primary rounded-full animate-gentle-pulse"></div>
               <Link 
                 to="/all-post" 
-                className="font-bold text-xl text-black"
+                className="font-bold text-xl text-black dark:text-slate-100"
               >
                 Latest Posts
               </Link>
@@ -141,16 +141,16 @@ function Home() {
         {/* Feedback/Testimonial Card */}
         <section className="py-24 mb-20 text-center animate-slide-up" style={{animationDelay: '0.8s'}}>
           <div className="max-w-4xl mx-auto">
-            <div className="bg-gradient-to-br from-primary/5 via-white/80 to-primary/5 backdrop-blur-xl rounded-3xl p-12 lg:p-20 border-2 border-primary/10 shadow-2xl">
+            <div className="bg-gradient-to-br from-primary/5 via-white/80 to-primary/5 backdrop-blur-xl rounded-3xl p-12 lg:p-20 border-2 border-primary/10 shadow-2xl dark:from-slate-800/60 dark:via-slate-900/80 dark:to-slate-800/60 dark:border-slate-700">
               <div className="w-28 h-28 bg-primary/20 rounded-3xl flex items-center justify-center mx-auto mb-12 border-2 border-primary/20 animate-gentle-pulse shadow-xl">
                 <svg className="w-14 h-14 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h2 className="text-4xl lg:text-5xl font-black text-black mb-8 leading-tight">
+              <h2 className="text-4xl lg:text-5xl font-black text-black mb-8 leading-tight dark:text-slate-100">
                 Loved these stories?
               </h2>
-              <p className="text-2xl text-black/70 mb-16 leading-relaxed max-w-3xl mx-auto">
+              <p className="text-2xl text-black/70 mb-16 leading-relaxed max-w-3xl mx-auto dark:text-slate-300">
                 Join our community of passionate writers and avid readers. Share your voice or discover incredible stories from creators worldwide.
               </p>
               <div className="flex flex-col lg:flex-row gap-6 justify-center items-stretch lg:items-center">
