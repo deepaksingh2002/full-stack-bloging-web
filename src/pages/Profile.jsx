@@ -1,396 +1,458 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getUserProfile, updateUserAvatar } from "../features/auth/authThunks";
-import { getAllPosts, deletePost } from "../features/post/postThunks";
-import { selectAuthUser } from "../features/auth/authSlice";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  changeUserPassword,
+  getUserProfile,
+  logoutUser,
+  updateUserAvatar,
+  updateUserProfile,
+} from "../features/auth/authThunks";
+import {
+  clearAuthState,
+  selectAuthError,
+  selectAuthLoading,
+  selectAuthMessage,
+  selectAuthUser,
+} from "../features/auth/authSlice";
+import { deletePost, getAllPosts } from "../features/post/postThunks";
 import { selectAllPosts } from "../features/post/postSlice";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { Contaner } from "../components";
 
-function UserProfile() {
+function Profile() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { userId } = useParams();
 
-  const currentUser = useSelector(selectAuthUser);
+  const user = useSelector(selectAuthUser);
+  const loading = useSelector(selectAuthLoading);
+  const error = useSelector(selectAuthError);
+  const message = useSelector(selectAuthMessage);
   const allPosts = useSelector(selectAllPosts);
 
-  const isOwner = currentUser?._id === userId;
-  const userPosts = allPosts.filter((p) => p.owner === userId);
-
+  const [profileData, setProfileData] = useState({
+    username: "",
+    email: "",
+    bio: "",
+  });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [avatarFile, setAvatarFile] = useState(null);
-  const [updatingAvatar, setUpdatingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   useEffect(() => {
-    if (!userId) return navigate("/");
-
-    dispatch(getUserProfile(userId));
+    dispatch(getUserProfile());
     dispatch(getAllPosts());
-  }, [dispatch, userId, navigate]);
 
-  const handleAvatarChange = (e) => {
-    if (!e.target.files?.[0]) return;
-    setAvatarFile(e.target.files[0]);
+    return () => {
+      dispatch(clearAuthState());
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!user) return;
+    setProfileData({
+      username: user.username || "",
+      email: user.email || "",
+      bio: user.bio || "",
+    });
+    setAvatarPreview("");
+    setAvatarFile(null);
+  }, [user]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
+  const myPosts = useMemo(() => {
+    if (!user?._id || !Array.isArray(allPosts)) return [];
+    return allPosts.filter((post) => {
+      const ownerId = typeof post?.owner === "string" ? post.owner : post?.owner?._id;
+      return ownerId === user._id;
+    });
+  }, [allPosts, user?._id]);
+
+  const totalViews = useMemo(
+    () => myPosts.reduce((sum, post) => sum + Number(post?.views || 0), 0),
+    [myPosts]
+  );
+
+  const totalLikes = useMemo(
+    () =>
+      myPosts.reduce((sum, post) => {
+        const likesCount =
+          post?.likesCount ??
+          (Array.isArray(post?.likes) ? post.likes.length : Number(post?.likes) || 0);
+        return sum + Number(likesCount || 0);
+      }, 0),
+    [myPosts]
+  );
+
+  const onChangeProfile = (e) => {
+    const { name, value } = e.target;
+    setProfileData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAvatarUpload = async () => {
+  const onChangePassword = (e) => {
+    const { name, value } = e.target;
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectAvatar = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should be less than 5MB.");
+      return;
+    }
+
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleUploadAvatar = async () => {
     if (!avatarFile) return;
-    setUpdatingAvatar(true);
-    await dispatch(updateUserAvatar(avatarFile));
-    setAvatarFile(null);
-    setUpdatingAvatar(false);
+
+    const formData = new FormData();
+    formData.append("avatar", avatarFile);
+
+    try {
+      await dispatch(updateUserAvatar(formData)).unwrap();
+      setAvatarFile(null);
+      setAvatarPreview("");
+    } catch {
+      // error handled by slice/UI
+    }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    try {
+      await dispatch(updateUserProfile(profileData)).unwrap();
+    } catch {
+      // error handled by slice/UI
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      alert("Please fill all password fields.");
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      alert("New password and confirm password do not match.");
+      return;
+    }
+
+    try {
+      await dispatch(
+        changeUserPassword({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        })
+      ).unwrap();
+
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch {
+      // error handled by slice/UI
+    }
   };
 
   const handleDeletePost = async (postId) => {
-    if (!window.confirm("Delete this post?")) return;
-    await dispatch(deletePost(postId)).unwrap();
-    dispatch(getAllPosts());
+    if (!window.confirm("Delete this post permanently?")) return;
+
+    try {
+      await dispatch(deletePost(postId)).unwrap();
+      dispatch(getAllPosts());
+    } catch {
+      alert("Failed to delete post.");
+    }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 md:px-20">
-      {/* Profile Header */}
-      <div className="flex flex-col md:flex-row items-center gap-8 mb-12">
-        <div className="relative">
-          <img
-            src={currentUser?.avatar || "/default-avatar.png"}
-            alt={currentUser?.name}
-            className="w-32 h-32 rounded-full object-cover border-2 border-gray-300"
-          />
-          {isOwner && (
-            <label className="absolute bottom-0 right-0 cursor-pointer bg-white border rounded-full p-1 hover:bg-gray-100 transition">
-              <input type="file" className="hidden" onChange={handleAvatarChange} />
-              <svg
-                className="w-6 h-6 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </label>
-          )}
-          {avatarFile && (
+  const handleLogout = async () => {
+    try {
+      await dispatch(logoutUser()).unwrap();
+      navigate("/login");
+    } catch {
+      alert("Logout failed. Please try again.");
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen pt-32 pb-16 bg-gray-50 dark:bg-slate-900">
+        <Contaner>
+          <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-md border border-gray-100 p-8 text-center dark:bg-slate-800 dark:border-slate-700">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Profile not available</h2>
+            <p className="text-gray-600 mt-2 dark:text-slate-300">Please login again to view your profile.</p>
             <button
-              onClick={handleAvatarUpload}
-              className="absolute bottom-0 left-0 bg-blue-500 px-3 py-1 text-white rounded-full text-sm hover:bg-blue-600 transition"
-              disabled={updatingAvatar}
+              onClick={() => navigate("/login")}
+              className="mt-6 px-5 py-2.5 rounded-lg bg-primary text-white font-semibold hover:opacity-90"
             >
-              {updatingAvatar ? "Updating..." : "Save"}
+              Go to Login
             </button>
-          )}
-        </div>
-
-        {/* Profile Info */}
-        <div className="flex-1">
-          <div className="flex items-center gap-4 mb-4">
-            <h1 className="text-2xl font-semibold">{currentUser?.name}</h1>
-            {isOwner && (
-              <button className="border px-4 py-1 rounded hover:bg-gray-100 transition">
-                Edit Profile
-              </button>
-            )}
           </div>
-
-          <div className="flex gap-8 mb-4 text-sm font-medium">
-            <span>{userPosts.length} posts</span>
-            <span>100 followers</span>
-            <span>150 following</span>
-          </div>
-
-          {currentUser?.bio && (
-            <p className="text-gray-700">{currentUser.bio}</p>
-          )}
-        </div>
+        </Contaner>
       </div>
+    );
+  }
 
-      {/* Posts Grid */}
-      <div className="grid grid-cols-3 gap-2">
-        {userPosts.map((post) => (
-          <div key={post._id} className="relative group overflow-hidden rounded">
-            <img
-              src={post.thumbnail}
-              alt={post.title}
-              className="w-full h-32 md:h-48 object-cover transform group-hover:scale-110 transition duration-300"
-            />
-            {isOwner && (
-              <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition">
-                <Link to={`/edit-post/${post._id}`}>
-                  <button className="bg-blue-500 px-3 py-1 text-white rounded hover:bg-blue-600 transition text-sm">
-                    Edit
-                  </button>
-                </Link>
+  return (
+    <div className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-gray-50 to-white dark:from-slate-900 dark:to-slate-950">
+      <Contaner>
+        <div className="max-w-6xl mx-auto space-y-8">
+          <section className="rounded-3xl border border-gray-200 bg-white shadow-lg p-6 md:p-8 dark:bg-slate-800 dark:border-slate-700">
+            <div className="flex flex-col lg:flex-row gap-6 lg:items-center lg:justify-between">
+              <div className="flex items-center gap-4 md:gap-6">
+                <div className="relative">
+                  <img
+                    src={avatarPreview || user.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
+                    alt={user.username || "User avatar"}
+                    className="w-24 h-24 md:w-28 md:h-28 rounded-2xl object-cover border-2 border-gray-200 dark:border-slate-600"
+                  />
+                  <label className="absolute -bottom-2 -right-2 w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center cursor-pointer border-2 border-white shadow">
+                    <input type="file" accept="image/*" className="hidden" onChange={handleSelectAvatar} />
+                    <span className="text-sm font-bold">+</span>
+                  </label>
+                </div>
+
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-slate-100">{user.username || "User"}</h1>
+                  <p className="text-gray-600 mt-1 dark:text-slate-300">{user.email}</p>
+                  <p className="text-sm text-gray-500 mt-2 dark:text-slate-400">{user.bio || "Add a short bio to complete your profile."}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 w-full lg:w-auto">
+                <div className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-center min-w-[90px] dark:bg-slate-900 dark:border-slate-700">
+                  <p className="text-xl font-black text-gray-900 dark:text-slate-100">{myPosts.length}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">Posts</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-center min-w-[90px] dark:bg-slate-900 dark:border-slate-700">
+                  <p className="text-xl font-black text-gray-900 dark:text-slate-100">{totalViews}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">Views</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-center min-w-[90px] dark:bg-slate-900 dark:border-slate-700">
+                  <p className="text-xl font-black text-gray-900 dark:text-slate-100">{totalLikes}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">Likes</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <button
+                onClick={handleLogout}
+                disabled={loading}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 disabled:opacity-60"
+              >
+                {loading ? "Please wait..." : "Logout"}
+              </button>
+            </div>
+
+            {avatarFile && (
+              <div className="mt-5 flex gap-3">
                 <button
-                  onClick={() => handleDeletePost(post._id)}
-                  className="bg-red-500 px-3 py-1 text-white rounded hover:bg-red-600 transition text-sm"
+                  onClick={handleUploadAvatar}
+                  disabled={loading}
+                  className="px-4 py-2 rounded-lg bg-primary text-white font-semibold hover:opacity-90 disabled:opacity-60"
                 >
-                  Delete
+                  {loading ? "Uploading..." : "Upload Avatar"}
+                </button>
+                <button
+                  onClick={() => {
+                    setAvatarFile(null);
+                    setAvatarPreview("");
+                  }}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancel
                 </button>
               </div>
             )}
+          </section>
+
+          {message && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 font-medium dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300">
+              {message}
+            </div>
+          )}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 font-medium dark:bg-red-950/30 dark:border-red-800 dark:text-red-300">
+              {error}
+            </div>
+          )}
+
+          <section className="rounded-3xl border border-gray-200 bg-white shadow-md p-6 dark:bg-slate-800 dark:border-slate-700">
+            <div className="flex items-center justify-between gap-3 mb-5">
+              <h2 className="text-xl font-black text-gray-900 dark:text-slate-100">My Posts</h2>
+              <Link
+                to="/add-post"
+                className="rounded-lg bg-primary text-white px-4 py-2 text-sm font-semibold hover:opacity-90"
+              >
+                New Post
+              </Link>
+            </div>
+
+            {myPosts.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 py-10 px-5 text-center dark:border-slate-600 dark:bg-slate-900">
+                <p className="text-gray-700 font-semibold dark:text-slate-200">You have not created any posts yet.</p>
+                <p className="text-gray-500 text-sm mt-1 dark:text-slate-400">Start sharing your story now.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {myPosts.map((post) => (
+                  <div key={post._id} className="rounded-2xl border border-gray-200 overflow-hidden bg-white dark:bg-slate-900 dark:border-slate-700">
+                    <img
+                      src={post.thumbnail}
+                      alt={post.title}
+                      className="w-full h-40 object-cover"
+                    />
+                    <div className="p-4 space-y-2">
+                      <h3 className="font-bold text-gray-900 line-clamp-2 dark:text-slate-100">{post.title}</h3>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">Views: {post.views || 0}</p>
+                      <div className="flex gap-2 pt-2">
+                        <Link
+                          to={`/post/${post._id}`}
+                          className="flex-1 text-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                        >
+                          View
+                        </Link>
+                        <Link
+                          to={`/edit-post/${post._id}`}
+                          className="flex-1 text-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          onClick={() => handleDeletePost(post._id)}
+                          className="rounded-lg bg-red-500 px-3 py-2 text-sm font-semibold text-white hover:bg-red-600"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <section className="rounded-3xl border border-gray-200 bg-white shadow-md p-6 dark:bg-slate-800 dark:border-slate-700">
+              <h2 className="text-xl font-black text-gray-900 mb-5 dark:text-slate-100">Profile Details</h2>
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-slate-300">Username</label>
+                  <input
+                    name="username"
+                    type="text"
+                    value={profileData.username}
+                    onChange={onChangeProfile}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-slate-300">Email</label>
+                  <input
+                    name="email"
+                    type="email"
+                    value={profileData.email}
+                    onChange={onChangeProfile}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-slate-300">Bio</label>
+                  <textarea
+                    name="bio"
+                    rows={4}
+                    value={profileData.bio}
+                    onChange={onChangeProfile}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-100"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-xl bg-primary text-white py-2.5 font-semibold hover:opacity-90 disabled:opacity-60"
+                >
+                  {loading ? "Saving..." : "Save Profile"}
+                </button>
+              </form>
+            </section>
+
+            <section className="rounded-3xl border border-gray-200 bg-white shadow-md p-6 dark:bg-slate-800 dark:border-slate-700">
+              <h2 className="text-xl font-black text-gray-900 mb-5 dark:text-slate-100">Change Password</h2>
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-slate-300">Current Password</label>
+                  <input
+                    name="currentPassword"
+                    type="password"
+                    value={passwordData.currentPassword}
+                    onChange={onChangePassword}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-slate-300">New Password</label>
+                  <input
+                    name="newPassword"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={onChangePassword}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-slate-300">Confirm New Password</label>
+                  <input
+                    name="confirmPassword"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={onChangePassword}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-100"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-xl bg-gray-900 text-white py-2.5 font-semibold hover:opacity-90 disabled:opacity-60 dark:bg-slate-700"
+                >
+                  {loading ? "Updating..." : "Update Password"}
+                </button>
+              </form>
+            </section>
           </div>
-        ))}
-      </div>
+        </div>
+      </Contaner>
     </div>
   );
 }
 
-export default UserProfile;
-
-
-
-// // Replace your Profile.jsx COMPLETELY with this simplified version:
-// import React, { useEffect, useState, useRef, useCallback } from "react";
-// import { useDispatch, useSelector } from "react-redux";
-// import { useNavigate } from "react-router-dom";
-// import {
-//   updateUserProfile,
-//   updateUserAvatar,
-//   //changeUserPassword,
-//   selectAuthUser,
-//   selectAuthLoading,
-//   selectAuthError,
-//   selectAuthMessage,
-//   clearAuthState,
-// } from "../features/auth/authSlice";
-// import { Contaner } from "../components";
-
-// const Profile = () => {
-//   const dispatch = useDispatch();
-//   const navigate = useNavigate();
-//   const fileInputRef = useRef(null);
-
-//   const user = useSelector(selectAuthUser);
-//   const loading = useSelector(selectAuthLoading);
-//   const error = useSelector(selectAuthError);
-//   const message = useSelector(selectAuthMessage);
-
-//   const [editMode, setEditMode] = useState(false);
-//   const [profileData, setProfileData] = useState({ username: "", email: "" });
-//   const [passwordData, setPasswordData] = useState({
-//     currentPassword: "",
-//     newPassword: "",
-//     confirmPassword: "",
-//   });
-//   const [avatarPreview, setAvatarPreview] = useState(null);
-
-//   // Sync form with user data
-//   useEffect(() => {
-//     if (user) {
-//       setProfileData({
-//         username: user.username || "",
-//         email: user.email || "",
-//       });
-//     }
-//   }, [user]);
-
-//   useEffect(() => {
-//     return () => dispatch(clearAuthState());
-//   }, [dispatch]);
-
-//   const handleAvatarChange = useCallback((e) => {
-//     const file = e.target.files[0];
-//     if (file && file.type.startsWith("image/") && file.size < 5 * 1024 * 1024) {
-//       const reader = new FileReader();
-//       reader.onloadend = () => setAvatarPreview(reader.result);
-//       reader.readAsDataURL(file);
-//       e.target.dataset.file = file;
-//     }
-//   }, []);
-
-//   const handleUpdateAvatar = async () => {
-//     if (!fileInputRef.current?.dataset.file) return alert("Select image first");
-    
-//     const formData = new FormData();
-//     formData.append("avatar", fileInputRef.current.dataset.file);
-    
-//     await dispatch(updateUserAvatar(formData));
-//     setAvatarPreview(null);
-//     fileInputRef.current.value = "";
-//   };
-
-//   const handleUpdateProfile = async (e) => {
-//     e.preventDefault();
-//     await dispatch(updateUserProfile(profileData));
-//     setEditMode(false);
-//   };
-
-//   const handleChangePassword = async (e) => {
-//     e.preventDefault();
-//     if (passwordData.newPassword !== passwordData.confirmPassword) {
-//       return alert("Passwords don't match");
-//     }
-//     await dispatch(changeUserPassword(passwordData));
-//     setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-//   };
-// if (loading) {
-//   return (
-//     <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-8">
-//       <LoadingAnimation type="pulse" size="xl" color="secondary" />
-//       <LoadingAnimation type="bounce" size="md" />
-//       <div className="text-center">
-//         <h2 className="text-2xl font-bold text-light mb-2">Loading Profile</h2>
-//         <LoadingAnimation type="spinner" size="sm" color="accent" />
-//       </div>
-//     </div>
-//   );
-// }
-//   if (!user) {
-//     return (
-//       <div className="text-center py-12">
-//         <p>Please log in to view profile</p>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="py-12">
-//       <Contaner>
-//         <div className="max-w-2xl mx-auto space-y-8">
-//           {/* Avatar Upload */}
-//           <div className="bg-white p-8 rounded-2xl shadow-lg">
-//             <h2 className="text-2xl font-bold mb-6">Profile Picture</h2>
-//             <div className="flex flex-col md:flex-row items-center gap-6">
-//               <img
-//                 src={avatarPreview || user.avatar || "/default-avatar.png"}
-//                 alt="Avatar"
-//                 className="w-32 h-32 rounded-full object-cover ring-4 ring-gray-200"
-//               />
-//               <div>
-//                 <input
-//                   ref={fileInputRef}
-//                   type="file"
-//                   accept="image/*"
-//                   onChange={handleAvatarChange}
-//                   className="hidden"
-//                 />
-//                 <label
-//                   htmlFor="avatar"
-//                   onClick={() => fileInputRef.current?.click()}
-//                   className="block bg-blue-500 text-white px-6 py-2 rounded-xl hover:bg-blue-600 cursor-pointer mb-2"
-//                 >
-//                   Choose New Avatar
-//                 </label>
-//                 {avatarPreview && (
-//                   <button
-//                     onClick={handleUpdateAvatar}
-//                     disabled={loading}
-//                     className="bg-green-500 text-white px-6 py-2 rounded-xl hover:bg-green-600 disabled:opacity-50"
-//                   >
-//                     Upload Avatar
-//                   </button>
-//                 )}
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* Profile Edit */}
-//           <div className="bg-white p-8 rounded-2xl shadow-lg">
-//             <div className="flex justify-between items-center mb-6">
-//               <h2 className="text-2xl font-bold">Profile Information</h2>
-//               <button
-//                 onClick={() => setEditMode(!editMode)}
-//                 className="bg-blue-500 text-white px-6 py-2 rounded-xl hover:bg-blue-600"
-//               >
-//                 {editMode ? "Cancel" : "Edit"}
-//               </button>
-//             </div>
-
-//             {editMode ? (
-//               <form onSubmit={handleUpdateProfile} className="space-y-4">
-//                 <div>
-//                   <label className="block text-sm font-medium mb-2">Username</label>
-//                   <input
-//                     type="text"
-//                     value={profileData.username}
-//                     onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-//                     className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-//                   />
-//                 </div>
-//                 <div>
-//                   <label className="block text-sm font-medium mb-2">Email</label>
-//                   <input
-//                     type="email"
-//                     value={profileData.email}
-//                     onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-//                     className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-//                   />
-//                 </div>
-//                 <button
-//                   type="submit"
-//                   disabled={loading}
-//                   className="w-full bg-blue-500 text-white p-3 rounded-xl hover:bg-blue-600 disabled:opacity-50 mt-4"
-//                 >
-//                   Save Changes
-//                 </button>
-//               </form>
-//             ) : (
-//               <div className="grid md:grid-cols-2 gap-6">
-//                 <div>
-//                   <span className="text-sm text-gray-500">Username</span>
-//                   <p className="text-xl font-semibold">{profileData.username}</p>
-//                 </div>
-//                 <div>
-//                   <span className="text-sm text-gray-500">Email</span>
-//                   <p className="text-xl font-semibold">{profileData.email}</p>
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-
-//           {/* Password Change */}
-//           <div className="bg-white p-8 rounded-2xl shadow-lg">
-//             <h2 className="text-2xl font-bold mb-6">Change Password</h2>
-//             <form onSubmit={handleChangePassword} className="space-y-4">
-//               <input
-//                 type="password"
-//                 placeholder="Current Password"
-//                 value={passwordData.currentPassword}
-//                 onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-//                 className="w-full p-3 border rounded-lg"
-//               />
-//               <input
-//                 type="password"
-//                 placeholder="New Password"
-//                 value={passwordData.newPassword}
-//                 onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-//                 className="w-full p-3 border rounded-lg"
-//               />
-//               <input
-//                 type="password"
-//                 placeholder="Confirm New Password"
-//                 value={passwordData.confirmPassword}
-//                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-//                 className="w-full p-3 border rounded-lg"
-//               />
-//               <button
-//                 type="submit"
-//                 disabled={loading}
-//                 className="w-full bg-purple-500 text-white p-3 rounded-xl hover:bg-purple-600 disabled:opacity-50"
-//               >
-//                 Update Password
-//               </button>
-//             </form>
-//           </div>
-
-//           {message && (
-//             <div className="bg-green-100 border border-green-400 text-green-700 p-4 rounded-xl">
-//               {message}
-//             </div>
-//           )}
-//           {error && (
-//             <div className="bg-red-100 border border-red-400 text-red-700 p-4 rounded-xl">
-//               {error}
-//             </div>
-//           )}
-//         </div>
-//       </Contaner>
-//     </div>
-//   );
-// };
-
-// export default React.memo(Profile);
+export default React.memo(Profile);
