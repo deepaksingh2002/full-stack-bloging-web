@@ -22,12 +22,14 @@ import {
   selectIsAuthenticated,
 } from "../features/auth/authSlice";
 import { Contaner } from "../components";
-
-const getUserId = (user) =>
-  user?._id || user?.id || user?.userId || null;
-
-const getUserName = (user, fallback = "Unknown User") =>
-  user?.username || user?.fullName || user?.name || fallback;
+import {
+  formatDisplayDate,
+  getPostLikesCount,
+  getPostOwner,
+  getUserDisplayName,
+  getUserId,
+  resolvePostCategory,
+} from "../utils/postHelpers";
 
 function Post() {
   const dispatch = useDispatch();
@@ -40,6 +42,8 @@ function Post() {
   const currentUser = useSelector(selectAuthUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const currentUserId = getUserId(currentUser);
+  const postOwner = getPostOwner(post);
+  const hasPostOwner = Boolean(post?.owner || post?.author || post?.user);
 
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState([]);
@@ -50,15 +54,14 @@ function Post() {
   const [isLikeSubmitting, setIsLikeSubmitting] = useState(false);
   const [isCommentSubmitting, setIsCommentSubmitting] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const isOwner =
     isAuthenticated &&
-    getUserId(post?.owner || post?.author) &&
-    getUserId(post?.owner || post?.author) === currentUserId;
+    getUserId(postOwner) &&
+    getUserId(postOwner) === currentUserId;
 
-  const likesCount =
-    post?.likesCount ??
-    (Array.isArray(post?.likes) ? post.likes.length : Number(post?.likes) || 0);
+  const likesCount = getPostLikesCount(post);
   const isLiked = Boolean(
     post?.isLiked ??
       post?.liked ??
@@ -73,20 +76,11 @@ function Post() {
           })
         : false)
   );
+  const plainTextContent = String(post?.content || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const wordCount = plainTextContent ? plainTextContent.split(" ").length : 0;
+  const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 220));
 
-  const formatDate = (date) => {
-    if (!date) return "";
-    try {
-      return new Date(date).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    } catch {
-      return "";
-    }
-  };
-
+  // Converts backend comment shapes into one UI shape used by this page.
   const normalizeComments = (payload) => {
     const base = payload?.data ?? payload;
     const list = Array.isArray(base)
@@ -110,7 +104,7 @@ function Post() {
         comment?.userId ||
         null,
       author:
-        getUserName(comment?.owner || comment?.author, "") ||
+        getUserDisplayName(comment?.owner || comment?.author, "") ||
         comment?.authorName ||
         "Unknown User",
       createdAt: comment?.createdAt || comment?.created_at || new Date().toISOString(),
@@ -121,6 +115,18 @@ function Post() {
     }));
   };
 
+  // Normalize freshly created comment response so we can prepend without reload.
+  const normalizeSingleComment = (payload) => {
+    const base = payload?.data ?? payload;
+    const candidate =
+      base?.comment ||
+      base?.data?.comment ||
+      base?.data ||
+      base;
+    const [normalized] = normalizeComments({ data: [candidate] });
+    return normalized;
+  };
+
   const fetchPost = useCallback(async () => {
     if (!postId) {
       navigate("/");
@@ -129,6 +135,7 @@ function Post() {
     await dispatch(getPostById(postId)).unwrap();
   }, [postId, dispatch, navigate]);
 
+  // Initial comment fetch (and re-fetch after edit/delete when needed).
   const loadComments = useCallback(async () => {
     if (!postId) return;
     try {
@@ -188,9 +195,12 @@ function Post() {
     setIsLikeSubmitting(true);
     try {
       await dispatch(togglePostLike(post._id)).unwrap();
-      await dispatch(getPostById(post._id)).unwrap();
-    } catch {
-      setActionError("Could not update like right now. Please try again.");
+    } catch (err) {
+      const message =
+        typeof err === "string"
+          ? err
+          : err?.message || "Could not update like right now. Please try again.";
+      setActionError(message);
     } finally {
       setIsLikeSubmitting(false);
     }
@@ -208,11 +218,18 @@ function Post() {
     setActionError("");
     setIsCommentSubmitting(true);
     try {
-      await dispatch(createComment({ postId: post?._id || postId, content })).unwrap();
+      const created = await dispatch(createComment({ postId: post?._id || postId, content })).unwrap();
+      const normalized = normalizeSingleComment(created);
+      if (normalized?.id) {
+        setComments((prev) => [normalized, ...prev.filter((item) => item.id !== normalized.id)]);
+      }
       setCommentText("");
-      await loadComments();
-    } catch {
-      setActionError("Could not post comment right now. Please try again.");
+    } catch (err) {
+      const message =
+        typeof err === "string"
+          ? err
+          : err?.message || "Could not post comment right now. Please try again.";
+      setActionError(message);
     } finally {
       setIsCommentSubmitting(false);
     }
@@ -224,11 +241,39 @@ function Post() {
       return;
     }
 
+    // Optimistic UI: update instantly, rollback if API call fails.
+    const snapshot = comments;
+    setComments((prev) =>
+      prev.map((comment) => {
+        if (comment.id !== commentId) return comment;
+        const nextLiked = !comment.liked;
+        return {
+          ...comment,
+          liked: nextLiked,
+          likes: Math.max(0, Number(comment.likes || 0) + (nextLiked ? 1 : -1)),
+        };
+      })
+    );
+
     try {
       await dispatch(toggleCommentLike(commentId)).unwrap();
-      await loadComments();
+    } catch (err) {
+      setComments(snapshot);
+      const message =
+        typeof err === "string"
+          ? err
+          : err?.message || "Could not update comment like right now.";
+      setActionError(message);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 1600);
     } catch {
-      setActionError("Could not update comment like right now.");
+      setActionError("Could not copy link.");
     }
   };
 
@@ -303,85 +348,109 @@ function Post() {
   }
 
   return (
-    <main className="pt-32 pb-16 bg-gray-50 dark:bg-slate-900">
+    <main className="pt-32 pb-16 bg-gradient-to-b from-gray-50 via-white to-gray-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
       <Contaner>
         <article className="max-w-4xl mx-auto">
           <nav className="text-sm text-gray-500 mb-8 flex items-center gap-2 dark:text-slate-400">
             <Link to="/all-post" className="hover:text-primary transition-colors">Posts</Link>
             <span>{'->'}</span>
-            <span className="font-medium text-gray-900 dark:text-slate-100">{post.title}</span>
+            <span className="font-medium text-gray-900 dark:text-slate-100 line-clamp-1">{post.title}</span>
           </nav>
 
-          <div className="mb-8">
-            <span className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-semibold">
-              {post.category || "Uncategorized"}
-            </span>
-          </div>
+          <section className="rounded-3xl border border-gray-200 bg-white p-7 md:p-10 lg:p-12 shadow-xl dark:border-slate-700 dark:bg-slate-800 mb-10">
+            <header className="text-center mb-8">
+              <span className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-semibold mb-5">
+                {resolvePostCategory(post, "Uncategorized")}
+              </span>
+              <h1 className="font-serif text-3xl md:text-5xl font-bold text-gray-900 dark:text-slate-100 leading-tight">
+                {post.title}
+              </h1>
+            </header>
 
-          <header className="mb-12">
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-slate-100 mb-6 leading-tight">
-              {post.title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 dark:text-slate-400">
-              <span>{formatDate(post.createdAt)}</span>
-              {post.views && <span>{'•'} {post.views} views</span>}
-              {(post.owner || post.author) && (
-                <span className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-gray-300 rounded-full dark:bg-slate-600"></div>
-                  {getUserName(post.owner || post.author)}
-                </span>
-              )}
+            <div className="prose prose-lg prose-headings:font-extrabold prose-a:text-primary max-w-none dark:prose-invert">
+              {parse(post.content || "<p>No content available</p>")}
             </div>
-          </header>
 
-          <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-            <button
-              onClick={handleLike}
-              disabled={isLikeSubmitting}
-              className={`inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
-                isLiked
-                  ? "bg-primary text-white hover:bg-primary/90"
-                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
-              }`}
-              type="button"
-            >
-              <svg className="w-4 h-4" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <span>{isLikeSubmitting ? "Updating..." : `${likesCount} Like${likesCount === 1 ? "" : "s"}`}</span>
-            </button>
-
-            {isOwner && (
-              <div className="flex gap-3">
-                <button
-                  onClick={handleEdit}
-                  className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-primary/90 hover:bg-primary text-white rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all duration-200"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Edit
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all duration-200"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Delete
-                </button>
+            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-slate-700 space-y-4">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700 dark:text-slate-200">
+                <span className="inline-flex items-center h-9 rounded-full border border-gray-300 px-4 dark:border-slate-600">
+                  {formatDisplayDate(post.createdAt)}
+                </span>
+                <span className="inline-flex items-center h-9 rounded-full border border-gray-300 px-4 dark:border-slate-600">
+                  {post.views || 0} views
+                </span>
+                <span className="inline-flex items-center h-9 rounded-full border border-gray-300 px-4 dark:border-slate-600">
+                  {comments.length} comments
+                </span>
+                <span className="inline-flex items-center h-9 rounded-full border border-gray-300 px-4 dark:border-slate-600">
+                  {readTimeMinutes} min read
+                </span>
+                {hasPostOwner && (
+                  <span className="inline-flex items-center gap-2 h-9 rounded-full border border-gray-300 px-4 dark:border-slate-600">
+                    <div className="w-5 h-5 bg-gray-300 rounded-full dark:bg-slate-600"></div>
+                    {getUserDisplayName(postOwner)}
+                  </span>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 lg:p-12 mb-12 prose prose-lg max-w-none dark:bg-slate-800 dark:border-slate-700 dark:prose-invert">
-            {parse(post.content || "<p>No content available</p>")}
-          </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleLike}
+                    disabled={isLikeSubmitting}
+                    className={`inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
+                      isLiked
+                        ? "bg-rose-500 text-white hover:bg-rose-600"
+                        : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+                    }`}
+                    type="button"
+                  >
+                    <svg className="w-4 h-4" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    <span>{isLikeSubmitting ? "Updating..." : `${likesCount} Like${likesCount === 1 ? "" : "s"}`}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold bg-gray-900 text-white hover:bg-black dark:bg-slate-700 dark:hover:bg-slate-600"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 8h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    {copiedLink ? "Copied" : "Copy Link"}
+                  </button>
+                </div>
 
-          <section className="mt-14 mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-slate-100 mb-4">
-              Comments
+                {isOwner && (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleEdit}
+                      className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-primary/90 hover:bg-primary text-white rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all duration-200"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all duration-200"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-gray-200 bg-white p-6 md:p-7 shadow-lg dark:border-slate-700 dark:bg-slate-800 mb-8">
+            <h2 className="font-serif text-2xl md:text-3xl font-bold text-gray-900 dark:text-slate-100 mb-4">
+              Comments ({comments.length})
             </h2>
 
             {actionError && (
@@ -392,7 +461,7 @@ function Post() {
 
             <form
               onSubmit={handleSubmitComment}
-              className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 md:p-5 shadow-sm mb-6"
+              className="border border-gray-200 dark:border-slate-700 rounded-2xl p-4 md:p-5 mb-6"
             >
               <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
                 Add a comment
@@ -417,14 +486,14 @@ function Post() {
 
             <div className="space-y-3">
               {comments.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 text-center text-gray-600 dark:text-slate-300">
+                <div className="rounded-xl border border-dashed border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 p-6 text-center text-gray-600 dark:text-slate-300">
                   No comments yet. Be the first to comment.
                 </div>
               ) : (
                 comments.map((comment) => (
                   <div
                     key={comment.id}
-                    className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4"
+                    className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 p-4"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -432,7 +501,7 @@ function Post() {
                           {comment.author}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
-                          {formatDate(comment.createdAt)}
+                          {formatDisplayDate(comment.createdAt)}
                         </p>
                       </div>
                       <button

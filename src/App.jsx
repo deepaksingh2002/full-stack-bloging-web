@@ -2,14 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import './App.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { getCurrentUser } from "./features/auth/authThunks";
-import { selectAuthChecked } from "./features/auth/authSlice";
+import { selectAuthChecked, selectIsAuthenticated } from "./features/auth/authSlice";
+import { getLikedPosts } from "./features/post/postThunks";
 import { Footer, Header } from './components';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 function App() {
   const dispatch = useDispatch();
+  const location = useLocation();
   const authChecked = useSelector(selectAuthChecked);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
   const hasCheckedAuth = useRef(false);
+  const hasHydratedLikes = useRef(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
@@ -18,6 +22,18 @@ function App() {
       hasCheckedAuth.current = true;
     }
   }, [dispatch, authChecked]);
+
+  useEffect(() => {
+    if (!authChecked || !isAuthenticated || hasHydratedLikes.current) return;
+    dispatch(getLikedPosts());
+    hasHydratedLikes.current = true;
+  }, [dispatch, authChecked, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      hasHydratedLikes.current = false;
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -30,6 +46,10 @@ function App() {
     document.documentElement.classList.toggle("dark", isDarkMode);
     localStorage.setItem("theme", isDarkMode ? "dark" : "light");
   }, [isDarkMode]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const toggleTheme = () => setIsDarkMode((prev) => !prev);
 

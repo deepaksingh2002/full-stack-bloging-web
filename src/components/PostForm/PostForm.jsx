@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useDispatch } from "react-redux";
 import { createPost, updatePost, deletePost } from "../../features/post/postThunks";
@@ -26,6 +26,14 @@ export default function PostForm({ post }) {
       content: post?.content || "",
     },
   });
+
+  useEffect(() => {
+    reset({
+      title: post?.title || "",
+      category: post?.category || "",
+      content: post?.content || "",
+    });
+  }, [post, reset]);
 
   const onSubmit = async (data) => {
     try {
@@ -63,14 +71,14 @@ export default function PostForm({ post }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 py-12 px-4">
+    <div className="bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 py-8 px-4 rounded-3xl border border-gray-200 dark:border-slate-700">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-black text-black mb-4 bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent animate-slide-up">
+          <h1 className="text-4xl md:text-5xl font-black text-black dark:text-slate-100 mb-4 bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent animate-slide-up">
             {post ? "Edit Post" : "Create Post"}
           </h1>
-          <p className="text-xl text-black/70 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl text-black/70 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
             {post ? "Update your story" : "Share your story with the world"}
           </p>
         </div>
@@ -78,12 +86,12 @@ export default function PostForm({ post }) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-bold text-black mb-2">Post Title</label>
+            <label className="block text-sm font-bold text-black dark:text-slate-100 mb-2">Post Title</label>
             <input
-              className={`w-full px-5 py-4 rounded-2xl border-2 bg-white/50 backdrop-blur-sm shadow-lg focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all duration-300 text-lg font-semibold ${
+              className={`w-full px-5 py-4 rounded-2xl border-2 bg-white/50 dark:bg-slate-800/70 text-gray-900 dark:text-slate-100 backdrop-blur-sm shadow-lg focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all duration-300 text-lg font-semibold ${
                 errors.title 
-                  ? 'border-red-300 bg-red-50/50' 
-                  : 'border-primary/20 hover:border-primary/40 focus:border-primary'
+                  ? 'border-red-300 bg-red-50/50 dark:bg-red-950/20' 
+                  : 'border-primary/20 hover:border-primary/40 focus:border-primary dark:border-slate-700'
               }`}
               placeholder="Enter a compelling title for your post..."
               {...register("title", { 
@@ -98,12 +106,12 @@ export default function PostForm({ post }) {
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-bold text-black mb-2">Category</label>
+            <label className="block text-sm font-bold text-black dark:text-slate-100 mb-2">Category</label>
             <select
-              className={`w-full px-5 py-4 rounded-2xl border-2 bg-white/50 backdrop-blur-sm shadow-lg focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all duration-300 text-lg font-semibold appearance-none bg-no-repeat bg-right pr-10 ${
+              className={`w-full px-5 py-4 rounded-2xl border-2 bg-white/50 dark:bg-slate-800/70 text-gray-900 dark:text-slate-100 backdrop-blur-sm shadow-lg focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all duration-300 text-lg font-semibold appearance-none bg-no-repeat bg-right pr-10 ${
                 errors.category
-                  ? 'border-red-300 bg-red-50/50'
-                  : 'border-primary/20 hover:border-primary/40 focus:border-primary'
+                  ? 'border-red-300 bg-red-50/50 dark:bg-red-950/20'
+                  : 'border-primary/20 hover:border-primary/40 focus:border-primary dark:border-slate-700'
               }`}
               {...register("category", { required: "Please select a category" })}
             >
@@ -124,7 +132,7 @@ export default function PostForm({ post }) {
 
           {/* Content */}
           <div>
-            <label className="block text-sm font-bold text-black mb-2">Content</label>
+            <label className="block text-sm font-bold text-black dark:text-slate-100 mb-2">Content</label>
             <RTE 
               name="content" 
               label="Write your story..." 
@@ -138,8 +146,8 @@ export default function PostForm({ post }) {
 
           {/* Thumbnail */}
           <div>
-            <label className="block text-sm font-bold text-black mb-2">Thumbnail Image (Optional)</label>
-            <div className="relative border-2 border-dashed border-primary/20 bg-white/50 backdrop-blur-sm rounded-2xl p-8 text-center hover:border-primary/40 transition-all duration-300 group">
+            <label className="block text-sm font-bold text-black dark:text-slate-100 mb-2">Thumbnail Image (Optional)</label>
+            <div className="relative border-2 border-dashed border-primary/20 dark:border-slate-700 bg-white/50 dark:bg-slate-800/70 backdrop-blur-sm rounded-2xl p-8 text-center hover:border-primary/40 transition-all duration-300 group">
               <input
                 type="file"
                 accept="image/*"
@@ -152,8 +160,8 @@ export default function PostForm({ post }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-lg font-semibold text-black group-hover:text-primary transition-colors">Click to upload image</p>
-                <p className="text-sm text-black/60">PNG, JPG up to 5MB</p>
+                <p className="text-lg font-semibold text-black dark:text-slate-100 group-hover:text-primary transition-colors">Click to upload image</p>
+                <p className="text-sm text-black/60 dark:text-slate-400">PNG, JPG up to 5MB</p>
               </div>
             </div>
           </div>

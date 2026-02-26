@@ -7,7 +7,9 @@ import Post from './pages/Post.jsx';
 import AddPost from './pages/AddPost.jsx';
 import EditPost from './pages/EditPost.jsx';
 import Profile from './pages/Profile.jsx';
+import ProfileSettings from './pages/ProfileSettings.jsx';
 import Search from './pages/Search.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
 import { Provider } from 'react-redux';
 import { store } from './app/store.js';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
@@ -36,6 +38,14 @@ const router = createBrowserRouter([
           </AuthLayout>
         ),
       },
+      {
+        path: "/forgot-password",
+        element: (
+          <AuthLayout authentication={false}>
+            <ForgotPassword />
+          </AuthLayout>
+        ),
+      },
       { path: "/all-post", element: <AllPosts /> },
       {
         path: "/add-post",
@@ -59,6 +69,14 @@ const router = createBrowserRouter([
         element: (
           <AuthLayout authentication>
             <Profile />
+          </AuthLayout>
+        ),
+      },
+      {
+        path: "/profile/settings",
+        element: (
+          <AuthLayout authentication>
+            <ProfileSettings />
           </AuthLayout>
         ),
       },

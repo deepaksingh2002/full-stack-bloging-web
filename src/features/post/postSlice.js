@@ -1,4 +1,4 @@
-import { createSlice, createSelector, createEntityAdapter } from "@reduxjs/toolkit";
+import { createSlice, createEntityAdapter } from "@reduxjs/toolkit";
 import {
   getAllPosts,
   getPostById,
@@ -18,6 +18,7 @@ const initialState = postAdapter.getInitialState({
   loading: false,
   error: null,
   message: null,
+  optimisticLikeByRequest: {},
   pagination: {
     page: 1,
     limit: 10,
@@ -26,20 +27,61 @@ const initialState = postAdapter.getInitialState({
   },
 });
 
+const normalizePostCategory = (post) => {
+  if (!post || typeof post !== "object") return post;
+  const resolvedCategory =
+    post.category ??
+    post.catagry ??
+    post.catagory ??
+    post.categoryName ??
+    post.postCategory ??
+    post.topic;
+
+  if (!resolvedCategory) return post;
+
+  return {
+    ...post,
+    category: resolvedCategory,
+  };
+};
+
 const extractPostList = (payload) => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.data?.posts)) return payload.data.posts;
-  if (Array.isArray(payload?.posts)) return payload.posts;
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+      ? payload.data
+      : Array.isArray(payload?.data?.posts)
+        ? payload.data.posts
+        : Array.isArray(payload?.posts)
+          ? payload.posts
+          : [];
+  if (Array.isArray(list)) return list.map(normalizePostCategory);
   return [];
 };
 
+const mergeWithExistingLikeState = (incomingPosts = [], entities = {}) =>
+  incomingPosts.map((post) => {
+    const existing = entities[post?._id];
+    if (!existing) return post;
+
+    const hasIncomingIsLiked = typeof post?.isLiked === "boolean";
+    const hasIncomingLikesCount = typeof post?.likesCount === "number";
+
+    return {
+      ...post,
+      isLiked: hasIncomingIsLiked ? post.isLiked : existing.isLiked,
+      likesCount: hasIncomingLikesCount ? post.likesCount : existing.likesCount,
+    };
+  });
+
 const extractSinglePost = (payload) =>
-  payload?.data?.post ||
-  payload?.post ||
-  payload?.data ||
-  payload ||
-  null;
+  normalizePostCategory(
+    payload?.data?.post ||
+    payload?.post ||
+    payload?.data ||
+    payload ||
+    null
+  );
 
 const extractLikeState = (payload = {}) => {
   const base = payload?.data || payload;
@@ -72,6 +114,52 @@ const extractLikeState = (payload = {}) => {
   };
 };
 
+const extractLikedPosts = (payload = {}) => {
+  const base = payload?.data || payload;
+  const rawList = Array.isArray(base)
+    ? base
+    : Array.isArray(base?.posts)
+      ? base.posts
+      : Array.isArray(base?.likedPosts)
+        ? base.likedPosts
+        : Array.isArray(base?.data)
+          ? base.data
+          : [];
+
+  return rawList
+    .map((item) => {
+      const post =
+        item?.post ||
+        item?.postId ||
+        item?.likedPost ||
+        item?.postDetails ||
+        item;
+
+      const postId =
+        (typeof post === "string" ? post : null) ||
+        post?._id ||
+        post?.id ||
+        item?.postId?._id ||
+        item?.postId?.id ||
+        item?.post?._id ||
+        item?.post?.id ||
+        item?._id;
+
+      if (!postId) return null;
+
+      if (typeof post === "string") {
+        return { _id: postId, isLiked: true };
+      }
+
+      return {
+        ...normalizePostCategory(post),
+        _id: postId,
+        isLiked: true,
+      };
+    })
+    .filter(Boolean);
+};
+
 const postSlice = createSlice({
   name: "post",
   initialState,
@@ -96,7 +184,8 @@ const postSlice = createSlice({
       })
       .addCase(getAllPosts.fulfilled, (state, action) => {
         state.loading = false;
-        postAdapter.setAll(state, extractPostList(action.payload));
+        const incoming = extractPostList(action.payload);
+        postAdapter.setAll(state, mergeWithExistingLikeState(incoming, state.entities));
       })
       .addCase(getAllPosts.rejected, (state, action) => {
         state.loading = false;
@@ -123,7 +212,8 @@ const postSlice = createSlice({
       })
       .addCase(searchPosts.fulfilled, (state, action) => {
         state.loading = false;
-        postAdapter.setAll(state, extractPostList(action.payload));
+        const incoming = extractPostList(action.payload);
+        postAdapter.setAll(state, mergeWithExistingLikeState(incoming, state.entities));
       })
       .addCase(searchPosts.rejected, (state, action) => {
         state.loading = false;
@@ -150,7 +240,32 @@ const postSlice = createSlice({
         postAdapter.removeOne(state, action.payload);
         state.message = "Post deleted successfully";
       })
+      .addCase(togglePostLike.pending, (state, action) => {
+        const postId = action.meta.arg;
+        const post = state.entities[postId];
+        if (!post) return;
+
+        const previousIsLiked = Boolean(post.isLiked ?? post.liked ?? false);
+        const previousLikesCount =
+          post.likesCount ??
+          (Array.isArray(post.likes) ? post.likes.length : Number(post.likes) || 0);
+
+        state.optimisticLikeByRequest[action.meta.requestId] = {
+          postId,
+          previousIsLiked,
+          previousLikesCount,
+        };
+
+        postAdapter.updateOne(state, {
+          id: postId,
+          changes: {
+            isLiked: !previousIsLiked,
+            likesCount: Math.max(0, previousLikesCount + (previousIsLiked ? -1 : 1)),
+          },
+        });
+      })
       .addCase(togglePostLike.fulfilled, (state, action) => {
+        delete state.optimisticLikeByRequest[action.meta.requestId];
         const fallbackPostId = action.meta.arg;
         const { postId, likesCount, isLiked } = extractLikeState(action.payload);
         const targetPostId = postId || fallbackPostId;
@@ -168,14 +283,37 @@ const postSlice = createSlice({
           });
         }
       })
+      .addCase(togglePostLike.rejected, (state, action) => {
+        const snapshot = state.optimisticLikeByRequest[action.meta.requestId];
+        if (!snapshot) return;
+
+        const { postId, previousIsLiked, previousLikesCount } = snapshot;
+        delete state.optimisticLikeByRequest[action.meta.requestId];
+
+        if (!postId || !state.entities[postId]) return;
+
+        postAdapter.updateOne(state, {
+          id: postId,
+          changes: {
+            isLiked: previousIsLiked,
+            likesCount: previousLikesCount,
+          },
+        });
+      })
       .addCase(getLikedPosts.fulfilled, (state, action) => {
-        const payload = action.payload?.data || action.payload || [];
-        const likedPosts = Array.isArray(payload) ? payload : payload?.posts || [];
+        const likedPosts = extractLikedPosts(action.payload);
         likedPosts.forEach((post) => {
           if (!post?._id) return;
+          const existing = state.entities[post._id];
+          const likesCount =
+            typeof post.likesCount === "number"
+              ? post.likesCount
+              : existing?.likesCount;
           postAdapter.upsertOne(state, {
+            ...existing,
             ...post,
             isLiked: true,
+            likesCount,
           });
         });
       });
@@ -191,18 +329,6 @@ export const {
   selectTotal: selectPostCount,
 } = postAdapter.getSelectors((state) => state.post);
 
-export const selectPostLoading = createSelector(
-  [(state) => state.post.loading],
-  (loading) => loading
-);
-
-export const selectPostError = createSelector(
-  [(state) => state.post.error],
-  (error) => error
-);
-
-
-export const selectSinglePost = createSelector(
-  [(state, postId) => postId, (state) => state.post.entities],
-  (postId, entities) => entities[postId] || null
-);
+export const selectPostLoading = (state) => state.post.loading;
+export const selectPostError = (state) => state.post.error;
+export const selectSinglePost = (state, postId) => state.post.entities[postId] || null;

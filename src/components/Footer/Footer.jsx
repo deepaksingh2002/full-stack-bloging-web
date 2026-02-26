@@ -7,9 +7,9 @@ function Footer() {
     <footer className="w-full pt-12 pb-8 bg-gradient-to-t from-primary/95 to-primary/80 border-t-2 border-primary/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Logo & Description */}
-          <div className="lg:col-span-1">
+          <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
                 <Logo width="48px" className="text-white" />
@@ -44,7 +44,7 @@ function Footer() {
           </div>
 
           {/* Legal */}
-          <div>
+          <div className="hidden md:block">
             <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-wide">Legal</h3>
             <ul className="space-y-3">
               <li><Link to="/privacy" className="text-white/90 hover:text-white hover:underline font-medium text-sm transition-all duration-300 block pb-1 border-b border-transparent hover:border-white/50">Privacy Policy</Link></li>

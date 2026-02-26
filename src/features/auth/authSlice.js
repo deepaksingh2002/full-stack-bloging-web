@@ -1,7 +1,8 @@
-import { createSlice, createSelector } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 import {
   registerUser,
   loginUser,
+  forgotPassword,
   logoutUser,
   getCurrentUser,
   getUserProfile,
@@ -97,6 +98,21 @@ const authSlice = createSlice({
         state.error = action.payload;
         state.isAuthenticated = false;
       })
+      .addCase(forgotPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(forgotPassword.fulfilled, (state, action) => {
+        state.loading = false;
+        state.message =
+          pickMessageFromPayload(action.payload) ||
+          "If an account exists for this email, a reset link has been sent.";
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to request password reset";
+      })
       .addCase(getCurrentUser.pending, (state) => {
         state.loading = true;
       })
@@ -189,6 +205,10 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.authChecked = true;
         persistUser(null);
+      })
+      .addCase(logoutUser.rejected, (state) => {
+        state.loading = false;
+        state.error = "Logout failed. Please try again.";
       });
   },
 });
@@ -196,33 +216,9 @@ const authSlice = createSlice({
 export const { clearAuthState } = authSlice.actions;
 export default authSlice.reducer;
 
-// ✅ OPTIMIZED SELECTORS
-export const selectAuthUser = createSelector(
-  [(state) => state.auth.user],
-  (user) => user
-);
-
-export const selectAuthLoading = createSelector(
-  [(state) => state.auth.loading],
-  (loading) => loading
-);
-
-export const selectAuthError = createSelector(
-  [(state) => state.auth.error],
-  (error) => error
-);
-
-export const selectAuthMessage = createSelector(
-  [(state) => state.auth.message],
-  (message) => message
-);
-
-export const selectIsAuthenticated = createSelector(
-  [(state) => state.auth.isAuthenticated],
-  (isAuth) => isAuth
-);
-
-export const selectAuthChecked = createSelector(
-  [(state) => state.auth.authChecked],
-  (checked) => checked
-);
+export const selectAuthUser = (state) => state.auth.user;
+export const selectAuthLoading = (state) => state.auth.loading;
+export const selectAuthError = (state) => state.auth.error;
+export const selectAuthMessage = (state) => state.auth.message;
+export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
+export const selectAuthChecked = (state) => state.auth.authChecked;

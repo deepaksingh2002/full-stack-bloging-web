@@ -36,6 +36,18 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+export const forgotPassword = createAsyncThunk(
+  "auth/forgotPassword",
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await AuthService.forgotPassword(data);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(handleError(err));
+    }
+  }
+);
+
 export const logoutUser = createAsyncThunk(
   "auth/logout",
   async (_, { rejectWithValue }) => {

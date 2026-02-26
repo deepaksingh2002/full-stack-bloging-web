@@ -19,7 +19,11 @@ export default function Protected({ children, authentication = true }) {
   }, [authentication, isAuthenticated, authChecked, navigate]);
 
   if (authentication && !authChecked) {
-    return <h1>Loading...</h1>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 text-gray-700 dark:text-slate-200">
+        Loading...
+      </div>
+    );
   }
 
   return <>{children}</>;

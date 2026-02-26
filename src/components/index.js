@@ -9,6 +9,7 @@ import Select from './Select'
 import RTE from "./RTE";
 import Signup from "./Signup";
 import Login from './Login';
+import ForgotPassword from "./ForgotPassword";
 import PostForm from './PostForm/PostForm';
 import PostCard from './PostCard';
 import PostListCard from './PostListCard';
@@ -28,6 +29,7 @@ export {
     RTE,
     Signup,
     Login,
+    ForgotPassword,
     PostForm,
     PostCard,
     PostListCard,

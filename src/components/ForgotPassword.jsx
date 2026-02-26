@@ -1,14 +1,21 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { loginUser } from "../features/auth/authThunks";
-import { Button, Input, Logo } from "./index";
-import PasswordInput from "./PasswordInput";
-import { useDispatch } from "react-redux";
+import React from "react";
+import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
+import { Button, Input, Logo } from "./index";
+import { forgotPassword } from "../features/auth/authThunks";
+import {
+  clearAuthState,
+  selectAuthError,
+  selectAuthLoading,
+  selectAuthMessage,
+} from "../features/auth/authSlice";
 
-function Login() {
-  const navigate = useNavigate();
+function ForgotPassword() {
   const dispatch = useDispatch();
+  const loading = useSelector(selectAuthLoading);
+  const error = useSelector(selectAuthError);
+  const message = useSelector(selectAuthMessage);
 
   const {
     register,
@@ -18,30 +25,18 @@ function Login() {
     mode: "onBlur",
     defaultValues: {
       email: "",
-      password: "",
     },
   });
 
-  const [loading, setLoading] = useState(false);
-  const [serverError, setServerError] = useState("");
-
-  const handleLogin = async (data) => {
-    setServerError("");
-    setLoading(true);
-
-    try {
-      await dispatch(loginUser(data)).unwrap();
-      navigate("/");
-    } catch (error) {
-      setServerError(
-        typeof error === "string"
-          ? error
-          : error?.message || "Login failed. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
+  const onSubmit = async (data) => {
+    await dispatch(forgotPassword({ email: data.email.trim() }));
   };
+
+  React.useEffect(() => {
+    return () => {
+      dispatch(clearAuthState());
+    };
+  }, [dispatch]);
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 px-4 py-10">
@@ -51,29 +46,32 @@ function Login() {
             <Logo width="100%" />
           </span>
         </div>
+
         <h2 className="text-center text-2xl font-bold leading-tight text-gray-900 dark:text-slate-100">
-          Sign in to your account
+          Forgot your password?
         </h2>
         <p className="mt-2 text-center text-base text-black/60 dark:text-slate-300">
-          Create new account?&nbsp;
-          <Link
-            to="/signup"
-            className="font-medium text-primary hover:underline transition"
-          >
-            Sign Up
-          </Link>
+          Enter your email and we will send a reset link.
         </p>
-        {serverError && (
+
+        {error && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg dark:bg-red-950/30 dark:border-red-800">
-            <p className="text-red-600 font-medium text-sm">{serverError}</p>
+            <p className="text-red-600 font-medium text-sm">{error}</p>
           </div>
         )}
-        <form onSubmit={handleSubmit(handleLogin)} className="mt-6">
+
+        {message && !error && (
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950/30 dark:border-green-800">
+            <p className="text-green-700 font-medium text-sm dark:text-green-300">{message}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-6">
           <div className="space-y-5">
             <div>
               <Input
                 label="Email:"
-                placeholder="Enter your email or username"
+                placeholder="Enter your email"
                 type="email"
                 disabled={loading}
                 {...register("email", {
@@ -91,38 +89,21 @@ function Login() {
                 </p>
               )}
             </div>
-            <div>
-              <PasswordInput
-                label="Password:"
-                placeholder="Enter your password"
-                disabled={loading}
-                {...register("password", {
-                  required: "Password is required",
-                  minLength: {
-                    value: 6,
-                    message: "Password must be at least 6 characters",
-                  },
-                })}
-              />
-              {errors.password && (
-                <p className="text-red-500 text-xs mt-1 font-medium">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
+
             <Button
               type="submit"
               disabled={loading}
               className="w-full bg-primary text-white px-5 py-2 rounded-xl font-semibold hover:bg-secondary transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? "Sending..." : "Send Reset Link"}
             </Button>
+
             <div className="text-center">
               <Link
-                to="/forgot-password"
+                to="/login"
                 className="text-sm text-primary hover:underline transition"
               >
-                Forgot password?
+                Back to Login
               </Link>
             </div>
           </div>
@@ -132,4 +113,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default ForgotPassword;

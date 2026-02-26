@@ -58,7 +58,7 @@ function PostsList() {
       <div className="w-full py-12 flex items-center justify-center min-h-screen bg-white dark:bg-slate-900">
         <div className="w-full max-w-md">
           {/* Error Container */}
-          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-6 shadow-sm">
+          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-6 shadow-sm dark:bg-red-950/30">
             {/* Error Icon */}
             <div className="flex items-start">
               <div className="flex-shrink-0">
@@ -80,10 +80,10 @@ function PostsList() {
 
               {/* Error Content */}
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-300">
                   Failed to load posts
                 </h3>
-                <div className="mt-2 text-sm text-red-700">
+                <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                   <p>{error}</p>
                 </div>
 
@@ -152,7 +152,7 @@ function PostsList() {
           {/* Create Post Button */}
           <div className="mt-6">
             <a
-              href="/create-post"
+              href="/add-post"
               className="inline-flex items-center px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition duration-200"
             >
               <svg

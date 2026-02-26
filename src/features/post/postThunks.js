@@ -114,9 +114,11 @@ export const getLikedPosts = createAsyncThunk(
 
 export const getPostComments = createAsyncThunk(
   "comment/getPostComments",
-  async (postId, { rejectWithValue }) => {
+  async (arg, { rejectWithValue }) => {
     try {
-      const response = await commentService.getPostComments(postId);
+      const postId = typeof arg === "string" ? arg : arg?.postId;
+      const params = typeof arg === "object" ? { page: arg?.page, limit: arg?.limit } : {};
+      const response = await commentService.getPostComments(postId, params);
       return response;
     } catch (error) {
       return rejectWithValue(error.message || "Failed to fetch comments");
@@ -128,7 +130,7 @@ export const createComment = createAsyncThunk(
   "comment/createComment",
   async ({ postId, content }, { rejectWithValue }) => {
     try {
-      const response = await commentService.createComment(postId, { content });
+      const response = await commentService.createComment(postId, content);
       return response;
     } catch (error) {
       return rejectWithValue(error.message || "Failed to create comment");
@@ -140,7 +142,7 @@ export const updateComment = createAsyncThunk(
   "comment/updateComment",
   async ({ commentId, content }, { rejectWithValue }) => {
     try {
-      const response = await commentService.updateComment(commentId, { content });
+      const response = await commentService.updateComment(commentId, content);
       return response;
     } catch (error) {
       return rejectWithValue(error.message || "Failed to update comment");

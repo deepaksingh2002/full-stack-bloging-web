@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getAllPosts, togglePostLike } from "../features/post/postThunks";
+import { getAllPosts } from "../features/post/postThunks";
 import { Link } from "react-router-dom";
 import { 
   selectAllPosts, 
@@ -8,7 +8,6 @@ import {
   selectPostError,
 } from "../features/post/postSlice";
 import { Contaner, PostCard, LoadingAnimation, Logo } from "../components";
-import { selectIsAuthenticated } from "../features/auth/authSlice";
 
 function Home() {
   const dispatch = useDispatch();
@@ -16,7 +15,6 @@ function Home() {
   const posts = useSelector(selectAllPosts);
   const loading = useSelector(selectPostLoading);
   const error = useSelector(selectPostError);
-  const isAuthenticated = useSelector(selectIsAuthenticated);
   const [initialFetchDone, setInitialFetchDone] = React.useState(false);
   
   // Show only FIRST 4 posts in ONE ROW
@@ -30,11 +28,6 @@ function Home() {
       hasFetched.current = true;
     }
   }, [dispatch]);
-
-  const handleLike = (postId) => {
-    if (!isAuthenticated) return;
-    dispatch(togglePostLike(postId));
-  };
 
   // Smooth animations - single color focus
   useEffect(() => {
@@ -155,9 +148,6 @@ function Home() {
             >
               <PostCard
                 post={post}
-                onLike={handleLike}
-                likes={post?.likesCount ?? (Array.isArray(post?.likes) ? post.likes.length : Number(post?.likes) || 0)}
-                liked={Boolean(post?.isLiked ?? post?.liked ?? post?.likedByCurrentUser)}
               />
             </div>
           ))}
@@ -202,18 +192,6 @@ function Home() {
           </div>
         </section>
 
-        {/* Final CTA */}
-        <div className="text-center pt-24 pb-12">
-          <Link 
-            to="/all-post"
-            className="group relative inline-flex items-center bg-primary text-white font-black px-10 py-4 rounded-2xl text-lg shadow-2xl hover:shadow-primary/60 hover:-translate-y-2 transition-all duration-700 border-2 border-primary/20 hover:border-primary overflow-hidden"
-          >
-            <span className="flex items-center gap-4">
-              View All Stories ({posts.length || 0}+)
-              <span className="w-3 h-3 bg-white rounded-full group-hover:translate-x-4 transition-all duration-500"></span>
-            </span>
-          </Link>
-        </div>
       </Contaner>
     </div>
   );

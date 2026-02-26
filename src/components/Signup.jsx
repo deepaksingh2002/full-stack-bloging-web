@@ -41,8 +41,7 @@ function Signup() {
       };
 
       //Register user
-      const user = await dispatch(registerUser(signupData)).unwrap();
-      console.log("REGESTER:: ",user);
+      await dispatch(registerUser(signupData)).unwrap();
 
 
       // Auto-login
@@ -67,7 +66,7 @@ function Signup() {
   };
 
   return (
-    <div className="flex items-center justify-center w-full min-h-screen px-4">
+    <div className="w-full min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 px-4 py-10">
       <div className="mx-auto w-full max-w-lg bg-gray-100 rounded-xl p-10 m-10 border border-black/10 shadow-lg transition-colors dark:bg-slate-800 dark:border-slate-700">
         <div className="mb-2 flex justify-center">
           <span className="inline-block w-full max-w-[100px]">
